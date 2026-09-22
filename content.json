@@ -25,12 +25,6 @@
     "credential_link_label": "View credential",
     "education_title": "Education",
     "languages_title": "Languages",
-    "lang_pt_name": "Portuguese",
-    "lang_pt_level": "Native",
-    "lang_es_name": "Spanish",
-    "lang_es_level": "Fluent",
-    "lang_en_name": "English",
-    "lang_en_level": "Professional Working Proficiency",
     "footer_location": "Buenos Aires, Argentina"
   },
   "pt": {
@@ -59,12 +53,6 @@
     "credential_link_label": "Ver certificado",
     "education_title": "Formação",
     "languages_title": "Idiomas",
-    "lang_pt_name": "Português",
-    "lang_pt_level": "Nativo",
-    "lang_es_name": "Espanhol",
-    "lang_es_level": "Fluente",
-    "lang_en_name": "Inglês",
-    "lang_en_level": "Proficiência Profissional",
     "footer_location": "Buenos Aires, Argentina"
   },
   "es": {
@@ -93,12 +81,6 @@
     "credential_link_label": "Ver certificado",
     "education_title": "Formación",
     "languages_title": "Idiomas",
-    "lang_pt_name": "Portugués",
-    "lang_pt_level": "Nativo",
-    "lang_es_name": "Español",
-    "lang_es_level": "Fluido",
-    "lang_en_name": "Inglés",
-    "lang_en_level": "Competencia Profesional",
     "footer_location": "Buenos Aires, Argentina"
   },
   "collections": {
@@ -150,6 +132,11 @@
         }
       }
     ],
-    "custom_sections": []
+    "custom_sections": [],
+    "languages": [
+      { "code": "pt", "level": "native" },
+      { "code": "es", "level": "fluent" },
+      { "code": "en", "level": "advanced" }
+    ]
   }
 }

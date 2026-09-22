@@ -125,6 +125,16 @@
   .btn-add:hover { background: var(--brand-soft); filter: brightness(0.97); }
   .collection-empty { color: var(--ink-muted); font-size: .88rem; font-style: italic; margin: 0 0 .75rem; }
 
+  /* Clickable "circle" choice pills (used for the language/level picker) */
+  .choice-group { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .choice-pill {
+    font-family: inherit; font-size: .85rem; font-weight: 600; cursor: pointer;
+    border-radius: 999px; padding: .45rem 1.05rem; border: 1.5px solid var(--border); background: var(--bg);
+    color: var(--ink);
+  }
+  .choice-pill:hover { border-color: var(--brand); color: var(--brand-strong); }
+  .choice-pill.is-selected { background: var(--brand-strong); border-color: var(--brand-strong); color: #fff; }
+
   .toolbar {
     position: sticky; bottom: 0; background: var(--bg); border-top: 1px solid var(--border);
     padding: 1rem 1.25rem; display: flex; align-items: center; gap: 1rem; justify-content: space-between;
@@ -156,6 +166,7 @@
     <div id="editor-loading">Carregando conteúdo…</div>
     <div id="photo-card-root"></div>
     <div id="sections"></div>
+    <div id="languages-root"></div>
     <div id="collections-root"></div>
     <div id="custom-sections-root"></div>
   </div>
@@ -178,20 +189,13 @@
   // panel at all. Saving still preserves those fixed texts untouched
   // (see collectContent()).
   var SECTIONS = [
-    { title: "Contato e Localização", keys: ["contact_email_value", "contact_phone_value", "contact_location_value"] },
-    { title: "Idiomas", keys: ["lang_pt_name", "lang_pt_level", "lang_es_name", "lang_es_level", "lang_en_name", "lang_en_level"] }
+    { title: "Contato e Localização", keys: ["contact_email_value", "contact_phone_value", "contact_location_value"] }
   ];
 
   var LABELS = {
     contact_email_value: "Endereço de email exibido (o mesmo vale para os 3 idiomas)",
     contact_phone_value: "Telefone exibido, com código do país (ex.: +54 11 6690-9485) — o mesmo vale para os 3 idiomas",
-    contact_location_value: "Cidade/país exibido em Localização (o mesmo vale para os 3 idiomas)",
-    lang_pt_name: "Nome do idioma: Português",
-    lang_pt_level: "Nível: Português",
-    lang_es_name: "Nome do idioma: Espanhol",
-    lang_es_level: "Nível: Espanhol",
-    lang_en_name: "Nome do idioma: Inglês",
-    lang_en_level: "Nível: Inglês"
+    contact_location_value: "Cidade/país exibido em Localização (o mesmo vale para os 3 idiomas)"
   };
 
   var TEXTAREA_KEYS = [];
@@ -219,11 +223,76 @@
   // visible (she starts with one entry in each).
   // ---------------------------------------------------------
   var LOCK_NOTE = " Depois de salvo, um item não pode mais ser editado — só removido. Para mudar o texto, remova e crie um novo.";
+  var TRANSLATE_NOTE = " Escreva em português — o inglês e o espanhol são preenchidos automaticamente por tradução quando você clicar em “Salvar alterações”.";
+
+  // ---------------------------------------------------------
+  // Auto-translation: Maria writes each field once, in Portuguese, and
+  // the English/Spanish versions are filled in automatically at save
+  // time via a free machine-translation API (MyMemory). This never
+  // blocks saving — if a translation call fails, the Portuguese text is
+  // used as a fallback for that language and a warning is shown so she
+  // knows to double-check it later.
+  // ---------------------------------------------------------
+  var translationHadError = false;
+
+  function translateText(text, targetLangCode) {
+    if (!text || !text.trim()) return Promise.resolve("");
+    var email = (originalContent && originalContent.en && originalContent.en.contact_email_value) || "";
+    var url = "https://api.mymemory.translated.net/get?q=" + encodeURIComponent(text) +
+      "&langpair=pt|" + targetLangCode + (email ? "&de=" + encodeURIComponent(email) : "");
+    return fetch(url)
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var translated = data && data.responseData && data.responseData.translatedText;
+        if (!translated || /INVALID|MYMEMORY WARNING/i.test(translated)) throw new Error("bad translation response");
+        return translated;
+      });
+  }
+
+  // Translates one plain-text (Portuguese) field into { en, pt, es }.
+  function translateField(text) {
+    text = text || "";
+    return Promise.all([
+      translateText(text, "en").catch(function () { translationHadError = true; return text; }),
+      translateText(text, "es").catch(function () { translationHadError = true; return text; })
+    ]).then(function (results) {
+      return { en: results[0], pt: text, es: results[1] };
+    });
+  }
+
+  // Same idea for a comma-separated tag list: translate the joined text
+  // once per language, then split back into an array.
+  function translateTagsField(text) {
+    text = text || "";
+    function splitTags(s) {
+      return (s || "").split(",").map(function (t) { return t.trim(); }).filter(Boolean);
+    }
+    return Promise.all([
+      translateText(text, "en").catch(function () { translationHadError = true; return text; }),
+      translateText(text, "es").catch(function () { translationHadError = true; return text; })
+    ]).then(function (results) {
+      return { en: splitTags(results[0]), pt: splitTags(text), es: splitTags(results[1]) };
+    });
+  }
+
+  // Walks every translated field of a not-yet-saved item and replaces its
+  // plain Portuguese string with the translated { en, pt, es } object.
+  function translateNewItemFields(item, fieldsDef) {
+    var jobs = [];
+    fieldsDef.forEach(function (f) {
+      if (!f.translated) return;
+      if (typeof item[f.name] !== "string") return; // already an {en,pt,es} object (locked/existing item)
+      var job = f.type === "taglist" ? translateTagsField(item[f.name]) : translateField(item[f.name]);
+      jobs.push(job.then(function (result) { item[f.name] = result; }));
+    });
+    return Promise.all(jobs);
+  }
+
   var COLLECTIONS = [
     {
       key: "projects",
       title: "Projetos e Atuação (itens da lista)",
-      hint: "Aparecem na seção “Projetos e Atuação”, sempre visível no site." + LOCK_NOTE,
+      hint: "Aparecem na seção “Projetos e Atuação”, sempre visível no site." + LOCK_NOTE + TRANSLATE_NOTE,
       periodField: { name: "period", label: "Ano / Período" },
       fields: [
         { name: "title", label: "Título", translated: true, type: "textarea" },
@@ -236,7 +305,7 @@
     {
       key: "education",
       title: "Formação (itens da lista)",
-      hint: "Aparecem na seção “Formação”, sempre visível no site. Use um item por curso/grau (ex.: se ela tiver uma graduação anterior, um intercâmbio, etc., pode adicionar mais de um)." + LOCK_NOTE,
+      hint: "Aparecem na seção “Formação”, sempre visível no site. Use um item por curso/grau (ex.: se ela tiver uma graduação anterior, um intercâmbio, etc., pode adicionar mais de um)." + LOCK_NOTE + TRANSLATE_NOTE,
       periodField: { name: "period", label: "Período (ex.: 2022 — 2028)" },
       fields: [
         { name: "title", label: "Nome do curso / grau", translated: true, type: "text" },
@@ -247,7 +316,7 @@
     {
       key: "certificates",
       title: "Certificados e Cursos (itens da lista)",
-      hint: "Aparecem dentro da seção “Formação”, junto com o resto do currículo. Enquanto a lista estiver vazia, esse bloco não aparece no site." + LOCK_NOTE,
+      hint: "Aparecem dentro da seção “Formação”, junto com o resto do currículo. Enquanto a lista estiver vazia, esse bloco não aparece no site." + LOCK_NOTE + TRANSLATE_NOTE,
       periodField: { name: "date", label: "Data / Ano" },
       fields: [
         { name: "title", label: "Nome do certificado / curso", translated: true, type: "textarea" },
@@ -258,7 +327,7 @@
     {
       key: "publications",
       title: "Artigos e Publicações (itens da lista)",
-      hint: "Aparecem dentro da seção “Formação”, junto com o resto do currículo. Enquanto a lista estiver vazia, esse bloco não aparece no site." + LOCK_NOTE,
+      hint: "Aparecem dentro da seção “Formação”, junto com o resto do currículo. Enquanto a lista estiver vazia, esse bloco não aparece no site." + LOCK_NOTE + TRANSLATE_NOTE,
       periodField: { name: "year", label: "Ano" },
       fields: [
         { name: "title", label: "Título do artigo / trabalho", translated: true, type: "textarea" },
@@ -277,7 +346,7 @@
   var toolbar = document.getElementById("toolbar");
   var statusEl = document.getElementById("status");
   var fieldRefs = {}; // key -> { en: input, pt: input, es: input }
-  var collectionsData = { projects: [], publications: [], certificates: [], education: [] };
+  var collectionsData = { projects: [], publications: [], certificates: [], education: [], languages: [] };
   var originalContent = null; // the site's fixed texts, exactly as loaded — never edited by this panel
 
   // Marks every item in a list as already-saved (read-only in the UI).
@@ -372,40 +441,21 @@
 
   // ---- Collections: blank item factories -------------------
 
+  // New items store each translated field as a single Portuguese string
+  // until save time, when translateNewItemFields() turns it into the
+  // { en, pt, es } shape the site (and an existing/locked item) expects.
   function blankItem(key) {
     if (key === "projects") {
-      return {
-        period: "",
-        title: { en: "", pt: "", es: "" },
-        subtitle: { en: "", pt: "", es: "" },
-        desc: { en: "", pt: "", es: "" },
-        tags: { en: [], pt: [], es: [] },
-        link: ""
-      };
+      return { period: "", title: "", subtitle: "", desc: "", tags: "", link: "" };
     }
     if (key === "publications") {
-      return {
-        year: "",
-        title: { en: "", pt: "", es: "" },
-        venue: { en: "", pt: "", es: "" },
-        link: ""
-      };
+      return { year: "", title: "", venue: "", link: "" };
     }
     if (key === "certificates") {
-      return {
-        date: "",
-        title: { en: "", pt: "", es: "" },
-        issuer: { en: "", pt: "", es: "" },
-        link: ""
-      };
+      return { date: "", title: "", issuer: "", link: "" };
     }
     if (key === "education") {
-      return {
-        period: "",
-        title: { en: "", pt: "", es: "" },
-        subtitle: { en: "", pt: "", es: "" },
-        desc: { en: "", pt: "", es: "" }
-      };
+      return { period: "", title: "", subtitle: "", desc: "" };
     }
     return {};
   }
@@ -595,52 +645,32 @@
             input.addEventListener("input", function (e) { item[f.name] = e.target.value; });
             field.appendChild(input);
           }
-        } else {
+        } else if (locked) {
+          // Existing item: already translated into { en, pt, es } — show
+          // all three, read-only.
           if (!item[f.name] || typeof item[f.name] !== "object") {
             item[f.name] = { en: "", pt: "", es: "" };
           }
           LANGS.forEach(function (lang) {
-            if (locked) {
-              var displayText;
-              if (f.type === "taglist") {
-                var arr0 = Array.isArray(item[f.name][lang.code]) ? item[f.name][lang.code] : [];
-                displayText = arr0.join(", ");
-              } else {
-                displayText = item[f.name][lang.code];
-              }
-              appendReadonlyRow(field, lang.tag, displayText);
-              return;
-            }
-
-            var row = document.createElement("div");
-            row.className = "lang-row";
-            var tag = document.createElement("div");
-            tag.className = "lang-tag";
-            tag.textContent = lang.tag;
-            row.appendChild(tag);
-
-            var input;
+            var displayText;
             if (f.type === "taglist") {
-              input = document.createElement("input");
-              input.type = "text";
-              var arr = Array.isArray(item[f.name][lang.code]) ? item[f.name][lang.code] : [];
-              input.value = arr.join(", ");
-              input.placeholder = "Ex.: Eletroporação, Oncologia";
-              input.addEventListener("input", function (e) {
-                item[f.name][lang.code] = e.target.value
-                  .split(",")
-                  .map(function (s) { return s.trim(); })
-                  .filter(Boolean);
-              });
+              var arr0 = Array.isArray(item[f.name][lang.code]) ? item[f.name][lang.code] : [];
+              displayText = arr0.join(", ");
             } else {
-              input = document.createElement(f.type === "textarea" ? "textarea" : "input");
-              if (f.type !== "textarea") input.type = "text";
-              input.value = item[f.name][lang.code] || "";
-              input.addEventListener("input", function (e) { item[f.name][lang.code] = e.target.value; });
+              displayText = item[f.name][lang.code];
             }
-            row.appendChild(input);
-            field.appendChild(row);
+            appendReadonlyRow(field, lang.tag, displayText);
           });
+        } else {
+          // New item: one Portuguese input — English/Spanish are filled
+          // in automatically by translation when she saves.
+          if (typeof item[f.name] !== "string") item[f.name] = "";
+          var singleInput = document.createElement(f.type === "textarea" ? "textarea" : "input");
+          if (f.type !== "textarea") singleInput.type = "text";
+          singleInput.value = item[f.name];
+          if (f.type === "taglist") singleInput.placeholder = "Ex.: Eletroporação, Oncologia";
+          singleInput.addEventListener("input", function (e) { item[f.name] = e.target.value; });
+          field.appendChild(singleInput);
         }
 
         itemCard.appendChild(field);
@@ -678,22 +708,25 @@
   var customSectionsRoot = document.getElementById("custom-sections-root");
 
   function blankCustomSection() {
-    return {
-      title: { en: "", pt: "", es: "" },
-      lead: { en: "", pt: "", es: "" },
-      items: []
-    };
+    return { title: "", lead: "", items: [] };
   }
 
   function blankCustomItem() {
-    return {
-      period: "",
-      title: { en: "", pt: "", es: "" },
-      subtitle: { en: "", pt: "", es: "" },
-      desc: { en: "", pt: "", es: "" },
-      tags: { en: [], pt: [], es: [] },
-      link: ""
-    };
+    return { period: "", title: "", subtitle: "", desc: "", tags: "", link: "" };
+  }
+
+  // Translates a not-yet-saved custom section's own title/lead (its items
+  // are handled per-item via translateNewItemFields, same as any other
+  // collection item).
+  function translateNewSectionMeta(section) {
+    var jobs = [];
+    if (typeof section.title === "string") {
+      jobs.push(translateField(section.title).then(function (r) { section.title = r; }));
+    }
+    if (typeof section.lead === "string") {
+      jobs.push(translateField(section.lead).then(function (r) { section.lead = r; }));
+    }
+    return Promise.all(jobs);
   }
 
   function buildCustomSectionsUI() {
@@ -706,7 +739,7 @@
     header.appendChild(h3);
     var hint = document.createElement("p");
     hint.className = "collection-hint";
-    hint.textContent = "Crie seções totalmente novas — por exemplo “Voluntariado”, “Prêmios”, “Habilidades”, o que fizer sentido. Cada seção só aparece no site depois de ter pelo menos 1 item, e aparece no final da página (depois de Formação). Elas não entram no menu do topo." + LOCK_NOTE;
+    hint.textContent = "Crie seções totalmente novas — por exemplo “Voluntariado”, “Prêmios”, “Habilidades”, o que fizer sentido. Cada seção só aparece no site depois de ter pelo menos 1 item, e aparece no final da página (depois de Formação). Elas não entram no menu do topo." + LOCK_NOTE + TRANSLATE_NOTE;
     header.appendChild(hint);
     var addSectionBtn = document.createElement("button");
     addSectionBtn.type = "button";
@@ -802,25 +835,17 @@
       var titleLabel = document.createElement("label");
       titleLabel.textContent = "Título da seção";
       titleField.appendChild(titleLabel);
-      if (!section.title) section.title = { en: "", pt: "", es: "" };
-      LANGS.forEach(function (lang) {
-        if (sectionLocked) {
-          appendReadonlyRow(titleField, lang.tag, section.title[lang.code]);
-          return;
-        }
-        var row = document.createElement("div");
-        row.className = "lang-row";
-        var tag = document.createElement("div");
-        tag.className = "lang-tag";
-        tag.textContent = lang.tag;
-        row.appendChild(tag);
-        var input = document.createElement("input");
-        input.type = "text";
-        input.value = section.title[lang.code] || "";
-        input.addEventListener("input", function (e) { section.title[lang.code] = e.target.value; });
-        row.appendChild(input);
-        titleField.appendChild(row);
-      });
+      if (sectionLocked) {
+        if (!section.title || typeof section.title !== "object") section.title = { en: "", pt: "", es: "" };
+        LANGS.forEach(function (lang) { appendReadonlyRow(titleField, lang.tag, section.title[lang.code]); });
+      } else {
+        if (typeof section.title !== "string") section.title = "";
+        var titleInput = document.createElement("input");
+        titleInput.type = "text";
+        titleInput.value = section.title;
+        titleInput.addEventListener("input", function (e) { section.title = e.target.value; });
+        titleField.appendChild(titleInput);
+      }
       card.appendChild(titleField);
 
       // Section lead text (translated, textarea, optional)
@@ -829,24 +854,16 @@
       var leadLabel = document.createElement("label");
       leadLabel.textContent = "Texto de apoio (opcional)";
       leadField.appendChild(leadLabel);
-      if (!section.lead) section.lead = { en: "", pt: "", es: "" };
-      LANGS.forEach(function (lang) {
-        if (sectionLocked) {
-          appendReadonlyRow(leadField, lang.tag, section.lead[lang.code]);
-          return;
-        }
-        var row = document.createElement("div");
-        row.className = "lang-row";
-        var tag = document.createElement("div");
-        tag.className = "lang-tag";
-        tag.textContent = lang.tag;
-        row.appendChild(tag);
-        var input = document.createElement("textarea");
-        input.value = section.lead[lang.code] || "";
-        input.addEventListener("input", function (e) { section.lead[lang.code] = e.target.value; });
-        row.appendChild(input);
-        leadField.appendChild(row);
-      });
+      if (sectionLocked) {
+        if (!section.lead || typeof section.lead !== "object") section.lead = { en: "", pt: "", es: "" };
+        LANGS.forEach(function (lang) { appendReadonlyRow(leadField, lang.tag, section.lead[lang.code]); });
+      } else {
+        if (typeof section.lead !== "string") section.lead = "";
+        var leadInput = document.createElement("textarea");
+        leadInput.value = section.lead;
+        leadInput.addEventListener("input", function (e) { section.lead = e.target.value; });
+        leadField.appendChild(leadInput);
+      }
       card.appendChild(leadField);
 
       // Items inside this custom section.
@@ -880,6 +897,211 @@
     var list = section.items || (section.items = []);
     renderItemList("custom-section-items-" + sIndex, list, CUSTOM_ITEM_FIELDS, CUSTOM_PERIOD_FIELD, function () {
       renderCustomSectionItems(section, sIndex);
+    });
+  }
+
+  // ---------------------------------------------------------
+  // Languages: instead of typing name+level in 3 languages by hand, she
+  // picks from a small set of clickable options — a level, then a
+  // language (or "Outro" plus a name to translate automatically). Once
+  // saved, an entry locks like any other collection item: remove and
+  // re-add to change it.
+  // ---------------------------------------------------------
+  var LANGUAGE_OPTIONS = [
+    { code: "pt", label: "Português" },
+    { code: "es", label: "Espanhol" },
+    { code: "en", label: "Inglês" },
+    { code: "it", label: "Italiano" },
+    { code: "fr", label: "Francês" },
+    { code: "de", label: "Alemão" },
+    { code: "other", label: "Outro" }
+  ];
+  var LEVEL_OPTIONS = [
+    { id: "native", label: "Nativo" },
+    { id: "fluent", label: "Fluente" },
+    { id: "advanced", label: "Avançado" },
+    { id: "intermediate", label: "Intermediário" },
+    { id: "basic", label: "Básico" }
+  ];
+
+  var languagesData = [];
+  var languagesRoot = document.getElementById("languages-root");
+
+  function blankLanguageEntry() {
+    return { code: "", level: "", name: "" };
+  }
+
+  function findOption(list, key, value) {
+    for (var i = 0; i < list.length; i++) { if (list[i][key] === value) return list[i]; }
+    return null;
+  }
+
+  function buildLanguagesUI() {
+    languagesRoot.innerHTML = "";
+    var card = document.createElement("div");
+    card.className = "section-card";
+
+    var h3 = document.createElement("h3");
+    h3.textContent = "Idiomas";
+    card.appendChild(h3);
+
+    var hint = document.createElement("p");
+    hint.className = "collection-hint";
+    hint.textContent = "Adicione os idiomas que ela fala e o nível de cada um, clicando nas opções abaixo." + LOCK_NOTE;
+    card.appendChild(hint);
+
+    var listWrap = document.createElement("div");
+    listWrap.id = "languages-list-admin";
+    card.appendChild(listWrap);
+
+    var addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.className = "btn-add";
+    addBtn.textContent = "+ Adicionar idioma";
+    addBtn.addEventListener("click", function () {
+      languagesData.push(blankLanguageEntry());
+      renderLanguagesList();
+    });
+    card.appendChild(addBtn);
+
+    languagesRoot.appendChild(card);
+    renderLanguagesList();
+  }
+
+  function renderLanguagesList() {
+    var wrap = document.getElementById("languages-list-admin");
+    if (!wrap) return;
+    wrap.innerHTML = "";
+
+    if (languagesData.length === 0) {
+      var empty = document.createElement("p");
+      empty.className = "collection-empty";
+      empty.textContent = "Nenhum idioma ainda. Clique em “+ Adicionar idioma” abaixo.";
+      wrap.appendChild(empty);
+      return;
+    }
+
+    languagesData.forEach(function (entry, index) {
+      var locked = !!entry._existing;
+      var itemCard = document.createElement("div");
+      itemCard.className = "item-card";
+
+      var itemHead = document.createElement("div");
+      itemHead.className = "item-head";
+      var itemLabel = document.createElement("span");
+      itemLabel.className = "item-label";
+      itemLabel.textContent = "Idioma #" + (index + 1) + (locked ? " (já salvo)" : " (novo — ainda não salvo)");
+      itemHead.appendChild(itemLabel);
+
+      var btnRow = document.createElement("div");
+      btnRow.className = "item-btn-row";
+      if (index > 0) {
+        var upBtn = document.createElement("button");
+        upBtn.type = "button"; upBtn.className = "btn-move"; upBtn.textContent = "▲ Subir";
+        upBtn.addEventListener("click", function () {
+          var tmp = languagesData[index - 1];
+          languagesData[index - 1] = languagesData[index];
+          languagesData[index] = tmp;
+          renderLanguagesList();
+        });
+        btnRow.appendChild(upBtn);
+      }
+      if (index < languagesData.length - 1) {
+        var downBtn = document.createElement("button");
+        downBtn.type = "button"; downBtn.className = "btn-move"; downBtn.textContent = "▼ Descer";
+        downBtn.addEventListener("click", function () {
+          var tmp = languagesData[index + 1];
+          languagesData[index + 1] = languagesData[index];
+          languagesData[index] = tmp;
+          renderLanguagesList();
+        });
+        btnRow.appendChild(downBtn);
+      }
+      var removeBtn = document.createElement("button");
+      removeBtn.type = "button"; removeBtn.className = "btn-remove"; removeBtn.textContent = "Remover";
+      removeBtn.addEventListener("click", function () {
+        if (!window.confirm("Remover este idioma? Isso só é definitivo depois de clicar em “Salvar alterações”.")) return;
+        languagesData.splice(index, 1);
+        renderLanguagesList();
+      });
+      btnRow.appendChild(removeBtn);
+      itemHead.appendChild(btnRow);
+      itemCard.appendChild(itemHead);
+
+      if (locked) {
+        var levelOpt = findOption(LEVEL_OPTIONS, "id", entry.level);
+        var langOpt = findOption(LANGUAGE_OPTIONS, "code", entry.code);
+        var langLabel = entry.code === "other" ? ((entry.name && entry.name.pt) || "—") : (langOpt ? langOpt.label : entry.code);
+        var readonlyRow = document.createElement("div");
+        readonlyRow.className = "readonly-text";
+        readonlyRow.textContent = langLabel + " — " + (levelOpt ? levelOpt.label : entry.level);
+        itemCard.appendChild(readonlyRow);
+        var lockedNote = document.createElement("p");
+        lockedNote.className = "collection-hint";
+        lockedNote.style.margin = ".5rem 0 0";
+        lockedNote.textContent = "Já salvo — para mudar, remova e adicione de novo.";
+        itemCard.appendChild(lockedNote);
+        wrap.appendChild(itemCard);
+        return;
+      }
+
+      var levelField = document.createElement("div");
+      levelField.className = "field";
+      var levelLbl = document.createElement("label");
+      levelLbl.textContent = "Nível";
+      levelField.appendChild(levelLbl);
+      var levelGroup = document.createElement("div");
+      levelGroup.className = "choice-group";
+      LEVEL_OPTIONS.forEach(function (opt) {
+        var pill = document.createElement("button");
+        pill.type = "button";
+        pill.className = "choice-pill" + (entry.level === opt.id ? " is-selected" : "");
+        pill.textContent = opt.label;
+        pill.addEventListener("click", function () {
+          entry.level = opt.id;
+          renderLanguagesList();
+        });
+        levelGroup.appendChild(pill);
+      });
+      levelField.appendChild(levelGroup);
+      itemCard.appendChild(levelField);
+
+      var langField = document.createElement("div");
+      langField.className = "field";
+      var langLbl = document.createElement("label");
+      langLbl.textContent = "Idioma";
+      langField.appendChild(langLbl);
+      var langGroup = document.createElement("div");
+      langGroup.className = "choice-group";
+      LANGUAGE_OPTIONS.forEach(function (opt) {
+        var pill = document.createElement("button");
+        pill.type = "button";
+        pill.className = "choice-pill" + (entry.code === opt.code ? " is-selected" : "");
+        pill.textContent = opt.label;
+        pill.addEventListener("click", function () {
+          entry.code = opt.code;
+          renderLanguagesList();
+        });
+        langGroup.appendChild(pill);
+      });
+      langField.appendChild(langGroup);
+      itemCard.appendChild(langField);
+
+      if (entry.code === "other") {
+        var nameField = document.createElement("div");
+        nameField.className = "field";
+        var nameLbl = document.createElement("label");
+        nameLbl.textContent = "Nome do idioma (em português — traduzido automaticamente ao salvar)";
+        nameField.appendChild(nameLbl);
+        var nameInput = document.createElement("input");
+        nameInput.type = "text";
+        nameInput.value = typeof entry.name === "string" ? entry.name : "";
+        nameInput.addEventListener("input", function (e) { entry.name = e.target.value; });
+        nameField.appendChild(nameInput);
+        itemCard.appendChild(nameField);
+      }
+
+      wrap.appendChild(itemCard);
     });
   }
 
@@ -1058,7 +1280,7 @@
 
     var cleanCollections = {};
     Object.keys(collectionsData).forEach(function (key) {
-      if (key === "custom_sections") return;
+      if (key === "custom_sections" || key === "languages") return;
       cleanCollections[key] = (collectionsData[key] || []).map(cleanItem);
     });
     cleanCollections.custom_sections = customSectionsData.map(function (section) {
@@ -1069,22 +1291,49 @@
         items: (section.items || []).map(cleanItem)
       };
     }).map(cleanItem);
+    cleanCollections.languages = languagesData.map(cleanItem);
 
     out.collections = cleanCollections;
     return out;
+  }
+
+  // Runs every pending translation (new collection items, new custom
+  // section titles/leads, new "other" language names) before a save, so
+  // collectContent() only ever sees fully-translated { en, pt, es } data.
+  function prepareAllTranslations() {
+    translationHadError = false;
+    var jobs = [];
+    COLLECTIONS.forEach(function (colDef) {
+      (collectionsData[colDef.key] || []).forEach(function (item) {
+        if (!item._existing) jobs.push(translateNewItemFields(item, colDef.fields));
+      });
+    });
+    customSectionsData.forEach(function (section) {
+      if (!section._existing) jobs.push(translateNewSectionMeta(section));
+      (section.items || []).forEach(function (item) {
+        if (!item._existing) jobs.push(translateNewItemFields(item, CUSTOM_ITEM_FIELDS));
+      });
+    });
+    languagesData.forEach(function (entry) {
+      if (!entry._existing && entry.code === "other" && typeof entry.name === "string") {
+        jobs.push(translateField(entry.name).then(function (r) { entry.name = r; }));
+      }
+    });
+    return Promise.all(jobs);
   }
 
   // Marks everything currently in memory as already-saved, so the panel
   // immediately renders it read-only without needing a page reload.
   function lockEverythingAsExisting() {
     Object.keys(collectionsData).forEach(function (key) {
-      if (key === "custom_sections") return;
+      if (key === "custom_sections" || key === "languages") return;
       (collectionsData[key] || []).forEach(function (item) { item._existing = true; });
     });
     customSectionsData.forEach(function (section) {
       section._existing = true;
       (section.items || []).forEach(function (item) { item._existing = true; });
     });
+    languagesData.forEach(function (entry) { entry._existing = true; });
   }
 
   function loadEditor() {
@@ -1092,6 +1341,7 @@
     editorLoading.style.display = "block";
     photoCardRoot.style.display = "none";
     sectionsEl.style.display = "none";
+    languagesRoot.style.display = "none";
     collectionsRoot.style.display = "none";
     customSectionsRoot.style.display = "none";
     fetch("/content.json", { cache: "no-store" })
@@ -1102,7 +1352,7 @@
         buildForm(content);
         collectionsData = content.collections && typeof content.collections === "object"
           ? content.collections
-          : { projects: [], publications: [], certificates: [], education: [], custom_sections: [] };
+          : { projects: [], publications: [], certificates: [], education: [], custom_sections: [], languages: [] };
         if (!Array.isArray(collectionsData.projects)) collectionsData.projects = [];
         if (!Array.isArray(collectionsData.publications)) collectionsData.publications = [];
         if (!Array.isArray(collectionsData.certificates)) collectionsData.certificates = [];
@@ -1116,11 +1366,15 @@
           section._existing = true;
           markExisting(section.items);
         });
+        languagesData = Array.isArray(collectionsData.languages) ? collectionsData.languages : [];
+        markExisting(languagesData);
+        buildLanguagesUI();
         buildCollectionsUI();
         buildCustomSectionsUI();
         editorLoading.style.display = "none";
         photoCardRoot.style.display = "block";
         sectionsEl.style.display = "block";
+        languagesRoot.style.display = "block";
         collectionsRoot.style.display = "block";
         customSectionsRoot.style.display = "block";
       })
@@ -1165,14 +1419,18 @@
     var token = getToken();
     if (!token) { showLogin("Sua sessão expirou. Entre novamente."); return; }
 
-    statusEl.textContent = "Salvando…";
+    statusEl.textContent = "Traduzindo conteúdo novo…";
     statusEl.className = "";
 
-    fetch("/api/save-content", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: token, content: collectContent() })
-    })
+    prepareAllTranslations()
+      .then(function () {
+        statusEl.textContent = "Salvando…";
+        return fetch("/api/save-content", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: token, content: collectContent() })
+        });
+      })
       .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
       .then(function (res) {
         if (!res.ok) {
@@ -1183,11 +1441,14 @@
           }
           return;
         }
-        statusEl.textContent = "Salvo! O site atualiza em cerca de 1 minuto.";
+        statusEl.textContent = translationHadError
+          ? "Salvo! Algumas traduções automáticas falharam — o texto em português foi usado como reserva nesses campos. Vale conferir e, se precisar, remover e recriar o item."
+          : "Salvo! O site atualiza em cerca de 1 minuto.";
         statusEl.className = "ok";
         lockEverythingAsExisting();
         buildCollectionsUI();
         renderCustomSectionsList();
+        renderLanguagesList();
       })
       .catch(function () {
         statusEl.textContent = "Erro de conexão. Tenta salvar de novo.";

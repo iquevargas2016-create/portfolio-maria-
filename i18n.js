@@ -66,6 +66,42 @@
     return [];
   }
 
+  // Curated catalog of languages Maria can pick from in the admin panel,
+  // with the display name already translated for all 3 site languages —
+  // no translation call needed for these, just a lookup.
+  var LANGUAGE_NAMES = {
+    pt: { en: "Portuguese", pt: "Português", es: "Portugués" },
+    es: { en: "Spanish", pt: "Espanhol", es: "Español" },
+    en: { en: "English", pt: "Inglês", es: "Inglés" },
+    it: { en: "Italian", pt: "Italiano", es: "Italiano" },
+    fr: { en: "French", pt: "Francês", es: "Francés" },
+    de: { en: "German", pt: "Alemão", es: "Alemán" }
+  };
+  var LEVEL_LABELS = {
+    native: { en: "Native", pt: "Nativo", es: "Nativo" },
+    fluent: { en: "Fluent", pt: "Fluente", es: "Fluido" },
+    advanced: { en: "Advanced", pt: "Avançado", es: "Avanzado" },
+    intermediate: { en: "Intermediate", pt: "Intermediário", es: "Intermedio" },
+    basic: { en: "Basic", pt: "Básico", es: "Básico" }
+  };
+
+  function renderLanguages(lang) {
+    var container = document.getElementById("languages-list");
+    if (!container || !collections) return;
+    container.innerHTML = "";
+    (collections.languages || []).forEach(function (entry) {
+      if (!entry) return;
+      var li = el("li", "language-item");
+      var nameText = entry.code === "other"
+        ? pick(entry.name, lang)
+        : (LANGUAGE_NAMES[entry.code] && LANGUAGE_NAMES[entry.code][lang]) || entry.code;
+      var levelText = (LEVEL_LABELS[entry.level] && LEVEL_LABELS[entry.level][lang]) || entry.level || "";
+      li.appendChild(el("span", "language-name", nameText));
+      li.appendChild(el("span", "language-level", levelText));
+      container.appendChild(li);
+    });
+  }
+
   function el(tag, className, text) {
     var node = document.createElement(tag);
     if (className) node.className = className;
@@ -172,6 +208,7 @@
     // as sub-blocks that only appear once Maria has added at least one item.
     renderList("certificates-list", "education-certificates-block", collections.certificates, lang, { linkLabel: linkLabel });
     renderList("publications-list", "education-publications-block", collections.publications, lang, { linkLabel: linkLabel });
+    renderLanguages(lang);
     initScrollReveal();
   }
 
@@ -310,7 +347,7 @@
     .then(function (r) { return r.json(); })
     .then(function (data) {
       translations = data;
-      collections = data.collections || { projects: [], publications: [], certificates: [], education: [], custom_sections: [] };
+      collections = data.collections || { projects: [], publications: [], certificates: [], education: [], custom_sections: [], languages: [] };
       var saved = getSavedLang();
       applyLanguage(saved || browserLangGuess());
 

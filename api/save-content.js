@@ -33,6 +33,10 @@ const COLLECTION_KEYS = ["projects", "publications", "certificates", "education"
 const TRANSLATED_ITEM_FIELDS = ["title", "subtitle", "desc", "venue", "issuer"];
 const STRING_ITEM_FIELDS = ["period", "year", "date", "link"];
 
+// Languages Maria has added via the admin panel's language picker.
+const LANGUAGE_CODES = ["pt", "es", "en", "it", "fr", "de", "other"];
+const LEVEL_IDS = ["native", "fluent", "advanced", "intermediate", "basic"];
+
 function isPlainObject(v) {
   return !!v && typeof v === "object" && !Array.isArray(v);
 }
@@ -104,6 +108,28 @@ function validateCustomSections(sections) {
   return null;
 }
 
+function validateLanguages(languages) {
+  if (languages == null) return null; // optional, treated as an empty list
+  if (!Array.isArray(languages)) return '"collections.languages" deve ser uma lista.';
+  for (let i = 0; i < languages.length; i++) {
+    const entry = languages[i];
+    const label = `languages[${i + 1}]`;
+    if (!isPlainObject(entry)) return `O item ${label} é inválido.`;
+    if (typeof entry.code !== "string" || LANGUAGE_CODES.indexOf(entry.code) === -1) {
+      return `O campo "${label}.code" precisa ser um dos idiomas conhecidos.`;
+    }
+    if (typeof entry.level !== "string" || LEVEL_IDS.indexOf(entry.level) === -1) {
+      return `O campo "${label}.level" precisa ser um nível conhecido.`;
+    }
+    if (entry.code === "other") {
+      if (!isPlainObject(entry.name)) return `O idioma "Outro" em ${label} precisa de um nome (campo "name").`;
+      const nameErr = validateTranslatedField(entry.name, `${label}.name`);
+      if (nameErr) return nameErr;
+    }
+  }
+  return null;
+}
+
 function validateCollections(collections) {
   if (collections == null) return null; // absent is fine — defaults apply elsewhere
   if (!isPlainObject(collections)) return 'O campo "collections" é inválido.';
@@ -116,6 +142,8 @@ function validateCollections(collections) {
       if (err) return err;
     }
   }
+  const languagesErr = validateLanguages(collections.languages);
+  if (languagesErr) return languagesErr;
   return validateCustomSections(collections.custom_sections);
 }
 
