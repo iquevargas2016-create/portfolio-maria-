@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Editar site — Maria Eduarda Miranda</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --brand: #002f5f;
+    --brand-strong: #00224a;
+    --brand-soft: #e3eaf3;
+    --ink: #1a2430;
+    --ink-muted: #5c6b7a;
+    --border: #dde4ee;
+    --surface: #f6f8fb;
+    --bg: #ffffff;
+    --radius: 6px;
+    --font-display: "Fraunces", Georgia, serif;
+    --font-sans: "Work Sans", "Segoe UI", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    background: var(--surface);
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  header {
+    background: var(--brand-strong);
+    color: #fff;
+    padding: 1.1rem 1.25rem;
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 600;
+  }
+  .wrap { max-width: 52rem; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
+
+  /* Login screen */
+  #login-screen {
+    max-width: 26rem;
+    margin: 4rem auto;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: 0 4px 18px rgba(0,47,95,0.08);
+  }
+  #login-screen h2 { font-family: var(--font-display); color: var(--brand-strong); margin: 0 0 .3rem; }
+  #login-screen p { color: var(--ink-muted); margin: 0 0 1.25rem; font-size: .92rem; }
+  #login-screen input {
+    width: 100%; padding: .65rem .8rem; border: 1px solid var(--border);
+    border-radius: var(--radius); font-size: 1rem; font-family: inherit;
+  }
+  #login-screen button, .btn-primary {
+    margin-top: .9rem; width: 100%; padding: .7rem 1rem; background: var(--brand-strong);
+    color: #fff; border: none; border-radius: var(--radius); font-weight: 600;
+    font-size: .95rem; cursor: pointer; font-family: inherit;
+  }
+  #login-screen button:hover, .btn-primary:hover { background: var(--brand); }
+  #login-error { color: #b3261e; font-size: .88rem; margin-top: .6rem; min-height: 1.2em; }
+
+  /* Editor */
+  #editor { display: none; }
+  .section-card {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 1.25rem 1.4rem; margin-bottom: 1.1rem;
+  }
+  .section-card h3 {
+    font-family: var(--font-display); color: var(--brand-strong); margin: 0 0 1rem;
+    font-size: 1.15rem; border-bottom: 1px solid var(--border); padding-bottom: .6rem;
+  }
+  .field { margin-bottom: 1rem; }
+  .field:last-child { margin-bottom: 0; }
+  .field label {
+    display: block; font-size: .82rem; font-weight: 600; color: var(--ink);
+    margin-bottom: .4rem;
+  }
+  .lang-row { display: grid; grid-template-columns: 2.4rem 1fr; gap: .5rem; align-items: start; margin-bottom: .4rem; }
+  .lang-row:last-child { margin-bottom: 0; }
+  .lang-tag {
+    font-size: .72rem; font-weight: 700; color: var(--brand-strong); background: var(--brand-soft);
+    border-radius: 4px; padding: .3rem 0; text-align: center; margin-top: .1rem;
+  }
+  .lang-row input, .lang-row textarea {
+    width: 100%; padding: .5rem .65rem; border: 1px solid var(--border); border-radius: var(--radius);
+    font-family: inherit; font-size: .92rem; resize: vertical;
+  }
+  .lang-row textarea { min-height: 4.5rem; }
+
+  .toolbar {
+    position: sticky; bottom: 0; background: var(--bg); border-top: 1px solid var(--border);
+    padding: 1rem 1.25rem; display: flex; align-items: center; gap: 1rem; justify-content: space-between;
+    box-shadow: 0 -4px 18px rgba(0,0,0,0.06);
+  }
+  .toolbar .btn-primary { width: auto; padding: .75rem 1.6rem; margin: 0; }
+  #status { font-size: .9rem; }
+  #status.ok { color: #1a7f37; }
+  #status.err { color: #b3261e; }
+  .logout-link { background: none; border: none; color: var(--ink-muted); font-size: .85rem; cursor: pointer; text-decoration: underline; padding: 0; font-family: inherit; }
+  #editor-loading { text-align: center; color: var(--ink-muted); padding: 3rem 0; }
+</style>
+</head>
+<body>
+
+<header>Painel de edição — Maria Eduarda Miranda</header>
+
+<div class="wrap">
+
+  <div id="login-screen">
+    <h2>Entrar</h2>
+    <p>Digite a senha para editar o conteúdo do site.</p>
+    <input type="password" id="password-input" placeholder="Senha" autocomplete="current-password">
+    <button id="login-btn" type="button">Entrar</button>
+    <div id="login-error"></div>
+  </div>
+
+  <div id="editor">
+    <div id="editor-loading">Carregando conteúdo…</div>
+    <div id="sections"></div>
+  </div>
+
+</div>
+
+<div class="toolbar" id="toolbar" style="display:none;">
+  <button class="logout-link" id="logout-btn" type="button">Sair</button>
+  <span id="status"></span>
+  <button class="btn-primary" id="save-btn" type="button">Salvar alterações</button>
+</div>
+
+<script>
+(function () {
+  var TOKEN_KEY = "adminToken";
+
+  var SECTIONS = [
+    { title: "Navegação", keys: ["skip_link", "nav_contact", "nav_projects", "nav_education"] },
+    { title: "Topo (foto e apresentação)", keys: ["eyebrow", "institution", "graduation", "summary"] },
+    { title: "Contato", keys: ["contact_title", "contact_lead", "contact_email_label", "contact_phone_label", "contact_location_label", "contact_location_value"] },
+    { title: "Projetos", keys: ["projects_title", "projects_lead", "project1_period", "project1_title", "project1_subtitle", "project1_desc", "tag1", "tag2", "tag3", "tag4"] },
+    { title: "Formação e idiomas", keys: ["education_title", "edu1_period", "edu1_degree", "edu1_subtitle", "edu1_desc", "languages_title", "lang_pt_name", "lang_pt_level", "lang_es_name", "lang_es_level", "lang_en_name", "lang_en_level"] },
+    { title: "Rodapé", keys: ["footer_location"] }
+  ];
+
+  var LABELS = {
+    skip_link: "Link de acessibilidade (“pular para conteúdo”)",
+    nav_contact: "Menu: Contato",
+    nav_projects: "Menu: Projetos",
+    nav_education: "Menu: Formação",
+    eyebrow: "Selo acima do nome",
+    institution: "Instituição (linha abaixo do nome)",
+    graduation: "Data de formatura",
+    summary: "Resumo / bio (parágrafo principal)",
+    contact_title: "Título da seção Contato",
+    contact_lead: "Texto de apoio da seção Contato",
+    contact_email_label: "Rótulo: Email",
+    contact_phone_label: "Rótulo: Telefone",
+    contact_location_label: "Rótulo: Localização",
+    contact_location_value: "Cidade/país exibido em Localização",
+    projects_title: "Título da seção Projetos",
+    projects_lead: "Texto de apoio da seção Projetos",
+    project1_period: "Ano do projeto",
+    project1_title: "Título do projeto",
+    project1_subtitle: "Subtítulo do projeto (cargo / instituição)",
+    project1_desc: "Descrição do projeto",
+    tag1: "Tag 1", tag2: "Tag 2", tag3: "Tag 3", tag4: "Tag 4",
+    education_title: "Título da seção Formação",
+    edu1_period: "Período do curso",
+    edu1_degree: "Nome do curso / grau",
+    edu1_subtitle: "Instituição do curso",
+    edu1_desc: "Descrição do curso",
+    languages_title: "Título da seção Idiomas",
+    lang_pt_name: "Nome do idioma: Português",
+    lang_pt_level: "Nível: Português",
+    lang_es_name: "Nome do idioma: Espanhol",
+    lang_es_level: "Nível: Espanhol",
+    lang_en_name: "Nome do idioma: Inglês",
+    lang_en_level: "Nível: Inglês",
+    footer_location: "Cidade/país no rodapé"
+  };
+
+  var TEXTAREA_KEYS = ["summary", "contact_lead", "projects_lead", "project1_title", "project1_subtitle", "project1_desc", "edu1_subtitle", "edu1_desc"];
+
+  var LANGS = [
+    { code: "en", tag: "EN" },
+    { code: "pt", tag: "PT" },
+    { code: "es", tag: "ES" }
+  ];
+
+  var loginScreen = document.getElementById("login-screen");
+  var editor = document.getElementById("editor");
+  var editorLoading = document.getElementById("editor-loading");
+  var sectionsEl = document.getElementById("sections");
+  var toolbar = document.getElementById("toolbar");
+  var statusEl = document.getElementById("status");
+  var fieldRefs = {}; // key -> { en: input, pt: input, es: input }
+
+  function getToken() {
+    try { return sessionStorage.getItem(TOKEN_KEY); } catch (e) { return null; }
+  }
+  function setToken(token) {
+    try { sessionStorage.setItem(TOKEN_KEY, token); } catch (e) {}
+  }
+  function clearToken() {
+    try { sessionStorage.removeItem(TOKEN_KEY); } catch (e) {}
+  }
+
+  function showLogin(message) {
+    loginScreen.style.display = "block";
+    editor.style.display = "none";
+    toolbar.style.display = "none";
+    document.getElementById("login-error").textContent = message || "";
+  }
+
+  function showEditor() {
+    loginScreen.style.display = "none";
+    editor.style.display = "block";
+    toolbar.style.display = "flex";
+  }
+
+  function buildForm(content) {
+    sectionsEl.innerHTML = "";
+    fieldRefs = {};
+
+    SECTIONS.forEach(function (section) {
+      var card = document.createElement("div");
+      card.className = "section-card";
+
+      var h3 = document.createElement("h3");
+      h3.textContent = section.title;
+      card.appendChild(h3);
+
+      section.keys.forEach(function (key) {
+        var field = document.createElement("div");
+        field.className = "field";
+
+        var label = document.createElement("label");
+        label.textContent = LABELS[key] || key;
+        field.appendChild(label);
+
+        fieldRefs[key] = {};
+
+        LANGS.forEach(function (lang) {
+          var row = document.createElement("div");
+          row.className = "lang-row";
+
+          var tag = document.createElement("div");
+          tag.className = "lang-tag";
+          tag.textContent = lang.tag;
+          row.appendChild(tag);
+
+          var isLong = TEXTAREA_KEYS.indexOf(key) !== -1;
+          var input = document.createElement(isLong ? "textarea" : "input");
+          if (!isLong) input.type = "text";
+          input.value = (content[lang.code] && content[lang.code][key]) || "";
+          row.appendChild(input);
+
+          fieldRefs[key][lang.code] = input;
+          field.appendChild(row);
+        });
+
+        card.appendChild(field);
+      });
+
+      sectionsEl.appendChild(card);
+    });
+  }
+
+  function collectContent() {
+    var out = { en: {}, pt: {}, es: {} };
+    Object.keys(fieldRefs).forEach(function (key) {
+      LANGS.forEach(function (lang) {
+        out[lang.code][key] = fieldRefs[key][lang.code].value;
+      });
+    });
+    return out;
+  }
+
+  function loadEditor() {
+    showEditor();
+    editorLoading.style.display = "block";
+    sectionsEl.style.display = "none";
+    fetch("/content.json", { cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(function (content) {
+        buildForm(content);
+        editorLoading.style.display = "none";
+        sectionsEl.style.display = "block";
+      })
+      .catch(function () {
+        editorLoading.textContent = "Não consegui carregar o conteúdo atual. Recarregue a página.";
+      });
+  }
+
+  document.getElementById("login-btn").addEventListener("click", function () {
+    var password = document.getElementById("password-input").value;
+    if (!password) return;
+    document.getElementById("login-error").textContent = "";
+    fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: password })
+    })
+      .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
+      .then(function (res) {
+        if (!res.ok) {
+          showLogin(res.data.error || "Senha incorreta.");
+          return;
+        }
+        setToken(res.data.token);
+        loadEditor();
+      })
+      .catch(function () {
+        showLogin("Erro de conexão. Tenta de novo.");
+      });
+  });
+
+  document.getElementById("password-input").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") document.getElementById("login-btn").click();
+  });
+
+  document.getElementById("logout-btn").addEventListener("click", function () {
+    clearToken();
+    showLogin();
+  });
+
+  document.getElementById("save-btn").addEventListener("click", function () {
+    var token = getToken();
+    if (!token) { showLogin("Sua sessão expirou. Entre novamente."); return; }
+
+    statusEl.textContent = "Salvando…";
+    statusEl.className = "";
+
+    fetch("/api/save-content", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: token, content: collectContent() })
+    })
+      .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
+      .then(function (res) {
+        if (!res.ok) {
+          statusEl.textContent = res.data.error || "Erro ao salvar.";
+          statusEl.className = "err";
+          if (res.data.error && res.data.error.indexOf("expirad") !== -1) {
+            clearToken();
+          }
+          return;
+        }
+        statusEl.textContent = "Salvo! O site atualiza em cerca de 1 minuto.";
+        statusEl.className = "ok";
+      })
+      .catch(function () {
+        statusEl.textContent = "Erro de conexão. Tenta salvar de novo.";
+        statusEl.className = "err";
+      });
+  });
+
+  // Boot: if a session token is already stored, skip straight to the editor.
+  if (getToken()) {
+    loadEditor();
+  } else {
+    showLogin();
+  }
+})();
+</script>
+</body>
+</html>
