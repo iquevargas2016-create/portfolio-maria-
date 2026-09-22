@@ -3,8 +3,33 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Maria Eduarda Miranda — Portfolio</title>
-<meta name="description" content="Medical student portfolio — academic, research and clinical background.">
+<title>Maria Eduarda Miranda — Medical Student, Fundación H. A. Barceló</title>
+<meta name="description" content="Maria Eduarda Miranda, 5th-year medical student at Fundación H. A. Barceló (Buenos Aires), researching electrode durability in electrochemotherapy and electroporation-based cancer treatment.">
+<link rel="canonical" href="https://mariamirandamd.com/">
+
+<!-- Structured data for search engines (Person) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "name": "Maria Eduarda Miranda",
+  "url": "https://mariamirandamd.com/",
+  "image": "https://mariamirandamd.com/og-image.png",
+  "jobTitle": "Medical Student",
+  "affiliation": {
+    "@type": "CollegeOrUniversity",
+    "name": "Fundación H. A. Barceló — Instituto Universitario de Ciencias de la Salud",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Buenos Aires",
+      "addressCountry": "AR"
+    }
+  },
+  "email": "mailto:miranda.maria.md@gmail.com",
+  "knowsAbout": ["Electrochemotherapy", "Electroporation", "Oncology", "Biomedical Engineering", "Translational Research"],
+  "knowsLanguage": ["pt", "es", "en"]
+}
+</script>
 
 <!-- Favicon -->
 <link rel="icon" href="/favicon.ico" sizes="any">
@@ -17,8 +42,8 @@
 <meta property="og:type" content="profile">
 <meta property="og:url" content="https://mariamirandamd.com/">
 <meta property="og:site_name" content="Maria Eduarda Miranda">
-<meta property="og:title" content="Maria Eduarda Miranda — Portfolio">
-<meta property="og:description" content="Medical student portfolio — academic, research and clinical background.">
+<meta property="og:title" content="Maria Eduarda Miranda — Medical Student, Fundación H. A. Barceló">
+<meta property="og:description" content="5th-year medical student researching electrode durability in electrochemotherapy and electroporation-based cancer treatment.">
 <meta property="og:image" content="https://mariamirandamd.com/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -26,8 +51,8 @@
 
 <!-- Twitter/X card -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Maria Eduarda Miranda — Portfolio">
-<meta name="twitter:description" content="Medical student portfolio — academic, research and clinical background.">
+<meta name="twitter:title" content="Maria Eduarda Miranda — Medical Student, Fundación H. A. Barceló">
+<meta name="twitter:description" content="5th-year medical student researching electrode durability in electrochemotherapy and electroporation-based cancer treatment.">
 <meta name="twitter:image" content="https://mariamirandamd.com/og-image.png">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -38,6 +63,10 @@
   window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments) }
 </script>
 <script defer src="/_vercel/insights/script.js"></script>
+<script>
+  window.si = window.si || function () { (window.siq = window.siq || []).push(arguments) }
+</script>
+<script defer src="/_vercel/speed-insights/script.js"></script>
 </head>
 <body>
 
@@ -89,24 +118,24 @@
 
       <ul class="contact-grid">
         <li>
-          <a class="contact-card" href="mailto:miranda.maria.md@gmail.com">
+          <a class="contact-card" id="contact-email-link" href="mailto:miranda.maria.md@gmail.com">
             <span class="contact-icon" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>
             </span>
             <span class="contact-text">
               <span class="contact-label" data-i18n="contact_email_label">Email</span>
-              <span class="contact-value">miranda.maria.md@gmail.com</span>
+              <span class="contact-value" data-i18n="contact_email_value">miranda.maria.md@gmail.com</span>
             </span>
           </a>
         </li>
         <li>
-          <a class="contact-card" href="tel:+541166909485">
+          <a class="contact-card" id="contact-phone-link" href="tel:+541166909485">
             <span class="contact-icon" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
             </span>
             <span class="contact-text">
               <span class="contact-label" data-i18n="contact_phone_label">Phone</span>
-              <span class="contact-value">+54 11 6690-9485</span>
+              <span class="contact-value" data-i18n="contact_phone_value">+54 11 6690-9485</span>
             </span>
           </a>
         </li>
@@ -130,39 +159,35 @@
       <h2 class="section-title" data-i18n="projects_title">Projects &amp; Involvement</h2>
       <p class="section-lead" data-i18n="projects_lead">Academic, research and volunteer work carried out alongside the medical programme.</p>
 
-      <ul class="project-grid">
-        <li class="project-card">
-          <span class="project-period" data-i18n="project1_period">2026</span>
-          <h3 class="project-title" data-i18n="project1_title">Electrode Needle Degradation and Strategies for Improving Electrode Durability in Electrochemotherapy</h3>
-          <p class="project-subtitle" data-i18n="project1_subtitle">Student Researcher · Fundación H. A. Barceló — Buenos Aires, Argentina</p>
-          <p class="project-desc" data-i18n="project1_desc">Investigated electrode degradation during electrochemotherapy and developed strategies to improve electrode durability, treatment reproducibility, and overall therapeutic performance.</p>
-          <ul class="tag-list">
-            <li class="tag" data-i18n="tag1">Electroporation</li>
-            <li class="tag" data-i18n="tag2">Electrochemotherapy</li>
-            <li class="tag" data-i18n="tag3">Electrode Degradation</li>
-            <li class="tag" data-i18n="tag4">Biomedical Engineering</li>
-          </ul>
-        </li>
-
-        <!-- Duplicate the .project-card <li> above for each additional project -->
-      </ul>
+      <!-- Populated dynamically from content.json (collections.projects) by i18n.js -->
+      <ul id="projects-list" class="project-grid"></ul>
     </div>
   </section>
 
+  <!-- Education, certificates, publications and languages all live inside
+       this one section now, so everything Maria adds "grows" in the same
+       place instead of spawning separate nav-linked sections. Certificates
+       and Publications only appear once they have at least one item. -->
   <section id="education" class="section">
     <div class="container">
       <h2 class="section-title" data-i18n="education_title">Education</h2>
 
-      <ul class="education-list">
-        <li class="education-item">
-          <span class="project-period" data-i18n="edu1_period">2022 — 2028 (expected)</span>
-          <h3 class="education-degree" data-i18n="edu1_degree">Medical Student — 5th Year</h3>
-          <p class="project-subtitle" data-i18n="edu1_subtitle">Fundación H. A. Barceló — Instituto Universitario de Ciencias de la Salud · Buenos Aires, Argentina</p>
-          <p class="project-desc" data-i18n="edu1_desc">Undergraduate medical program with integrated clinical training, hospital rotations, and a strong emphasis on research and evidence-based medicine.</p>
-        </li>
+      <!-- Populated dynamically from content.json (collections.education) by i18n.js -->
+      <ul id="education-list" class="education-list"></ul>
 
-        <!-- Duplicate the .education-item <li> above for each degree -->
-      </ul>
+      <div id="education-certificates-block" hidden>
+        <h3 class="sub-title" data-i18n="certificates_title">Certificates &amp; Courses</h3>
+        <p class="sub-lead" data-i18n="certificates_lead">Courses, certifications, and extracurricular training completed alongside the medical programme.</p>
+        <!-- Populated dynamically from content.json (collections.certificates) by i18n.js -->
+        <ul id="certificates-list" class="project-grid"></ul>
+      </div>
+
+      <div id="education-publications-block" hidden>
+        <h3 class="sub-title" data-i18n="publications_title">Publications &amp; Academic Work</h3>
+        <p class="sub-lead" data-i18n="publications_lead">Articles, papers, and academic work produced during the medical programme.</p>
+        <!-- Populated dynamically from content.json (collections.publications) by i18n.js -->
+        <ul id="publications-list" class="project-grid"></ul>
+      </div>
 
       <h3 class="sub-title" data-i18n="languages_title">Languages</h3>
       <ul class="language-list">
@@ -181,6 +206,12 @@
       </ul>
     </div>
   </section>
+
+  <!-- Fully custom sections Maria can create herself from the admin panel
+       (collections.custom_sections). Built entirely by i18n.js — each one
+       only appears once it has at least one item. Not added to the nav
+       menu above, since the list can grow to any length. -->
+  <div id="custom-sections-container"></div>
 
 </main>
 

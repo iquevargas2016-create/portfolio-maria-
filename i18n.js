@@ -1,132 +1,25 @@
 // ---------------------------------------------------------
 // Simple i18n: translates all elements with a [data-i18n] tag
-// into English / Portuguese / Spanish. Auto-detects the visitor's
-// language from their country (IP-based), falling back to their
-// browser language, with a manual switcher that always wins and
-// is remembered for next time.
+// into English / Portuguese / Spanish. Content lives in
+// content.json (editable via /admin) rather than hardcoded
+// here, so text changes never need a code change.
+//
+// content.json also carries a "collections" object — repeatable
+// lists (projects, publications, certificates, education, and any
+// custom sections/"topics" Maria creates) that she can add to or
+// remove from over time via the admin panel, without ever touching
+// code. Each collection is rendered here from scratch on every
+// language change.
+//
+// Auto-detects the visitor's language from their country
+// (IP-based), falling back to their browser language, with a
+// manual switcher that always wins and is remembered for next
+// time.
 // ---------------------------------------------------------
 
 (function () {
-  var translations = {
-    en: {
-      skip_link: "Skip to content",
-      nav_contact: "Contact",
-      nav_projects: "Projects",
-      nav_education: "Education",
-      eyebrow: "Medical Student",
-      institution: "Fundación H. A. Barceló — Buenos Aires, Argentina",
-      graduation: "Expected graduation: 2028",
-      summary: "Fifth-year medical student interested in electroporation-based cancer treatments and translational research, with a focus on improving electrochemotherapy through experimental research.",
-      contact_title: "Contact",
-      contact_lead: "Interested in research collaborations, academic opportunities, and professional networking.",
-      contact_email_label: "Email",
-      contact_phone_label: "Phone",
-      contact_location_label: "Location",
-      contact_location_value: "Buenos Aires, Argentina",
-      projects_title: "Projects & Involvement",
-      projects_lead: "Academic, research and volunteer work carried out alongside the medical programme.",
-      project1_period: "2026",
-      project1_title: "Electrode Needle Degradation and Strategies for Improving Electrode Durability in Electrochemotherapy",
-      project1_subtitle: "Student Researcher · Fundación H. A. Barceló — Buenos Aires, Argentina",
-      project1_desc: "Investigated electrode degradation during electrochemotherapy and developed strategies to improve electrode durability, treatment reproducibility, and overall therapeutic performance.",
-      tag1: "Electroporation",
-      tag2: "Electrochemotherapy",
-      tag3: "Electrode Degradation",
-      tag4: "Biomedical Engineering",
-      education_title: "Education",
-      edu1_period: "2022 — 2028 (expected)",
-      edu1_degree: "Medical Student — 5th Year",
-      edu1_subtitle: "Fundación H. A. Barceló — Instituto Universitario de Ciencias de la Salud · Buenos Aires, Argentina",
-      edu1_desc: "Undergraduate medical program with integrated clinical training, hospital rotations, and a strong emphasis on research and evidence-based medicine.",
-      languages_title: "Languages",
-      lang_pt_name: "Portuguese",
-      lang_pt_level: "Native",
-      lang_es_name: "Spanish",
-      lang_es_level: "Fluent",
-      lang_en_name: "English",
-      lang_en_level: "Professional Working Proficiency",
-      footer_location: "Buenos Aires, Argentina"
-    },
-    pt: {
-      skip_link: "Pular para o conteúdo",
-      nav_contact: "Contato",
-      nav_projects: "Projetos",
-      nav_education: "Formação",
-      eyebrow: "Estudante de Medicina",
-      institution: "Fundación H. A. Barceló — Buenos Aires, Argentina",
-      graduation: "Formatura prevista: 2028",
-      summary: "Estudante de Medicina do quinto ano, com interesse em tratamentos oncológicos baseados em eletroporação e pesquisa translacional, com foco no aprimoramento da eletroquimioterapia por meio de pesquisa experimental.",
-      contact_title: "Contato",
-      contact_lead: "Interessada em colaborações de pesquisa, oportunidades acadêmicas e networking profissional.",
-      contact_email_label: "Email",
-      contact_phone_label: "Telefone",
-      contact_location_label: "Localização",
-      contact_location_value: "Buenos Aires, Argentina",
-      projects_title: "Projetos e Atuação",
-      projects_lead: "Trabalhos acadêmicos, de pesquisa e voluntariado realizados ao longo da graduação em Medicina.",
-      project1_period: "2026",
-      project1_title: "Degradação de Eletrodos e Estratégias para Melhorar a Durabilidade de Eletrodos em Eletroquimioterapia",
-      project1_subtitle: "Pesquisadora Discente · Fundación H. A. Barceló — Buenos Aires, Argentina",
-      project1_desc: "Investigação da degradação de eletrodos durante a eletroquimioterapia, com desenvolvimento de estratégias para melhorar a durabilidade dos eletrodos, a reprodutibilidade do tratamento e o desempenho terapêutico geral.",
-      tag1: "Eletroporação",
-      tag2: "Eletroquimioterapia",
-      tag3: "Degradação de Eletrodos",
-      tag4: "Engenharia Biomédica",
-      education_title: "Formação",
-      edu1_period: "2022 — 2028 (previsto)",
-      edu1_degree: "Estudante de Medicina — 5º Ano",
-      edu1_subtitle: "Fundación H. A. Barceló — Instituto Universitario de Ciencias de la Salud · Buenos Aires, Argentina",
-      edu1_desc: "Graduação em Medicina com formação clínica integrada, estágios hospitalares e forte ênfase em pesquisa e medicina baseada em evidências.",
-      languages_title: "Idiomas",
-      lang_pt_name: "Português",
-      lang_pt_level: "Nativo",
-      lang_es_name: "Espanhol",
-      lang_es_level: "Fluente",
-      lang_en_name: "Inglês",
-      lang_en_level: "Proficiência Profissional",
-      footer_location: "Buenos Aires, Argentina"
-    },
-    es: {
-      skip_link: "Saltar al contenido",
-      nav_contact: "Contacto",
-      nav_projects: "Proyectos",
-      nav_education: "Formación",
-      eyebrow: "Estudiante de Medicina",
-      institution: "Fundación H. A. Barceló — Buenos Aires, Argentina",
-      graduation: "Graduación prevista: 2028",
-      summary: "Estudiante de quinto año de Medicina interesada en tratamientos oncológicos basados en electroporación e investigación traslacional, con foco en mejorar la electroquimioterapia mediante investigación experimental.",
-      contact_title: "Contacto",
-      contact_lead: "Interesada en colaboraciones de investigación, oportunidades académicas y networking profesional.",
-      contact_email_label: "Correo electrónico",
-      contact_phone_label: "Teléfono",
-      contact_location_label: "Ubicación",
-      contact_location_value: "Buenos Aires, Argentina",
-      projects_title: "Proyectos y Participación",
-      projects_lead: "Trabajos académicos, de investigación y voluntariado realizados junto con la carrera de Medicina.",
-      project1_period: "2026",
-      project1_title: "Degradación de Electrodos y Estrategias para Mejorar la Durabilidad de Electrodos en Electroquimioterapia",
-      project1_subtitle: "Investigadora Estudiante · Fundación H. A. Barceló — Buenos Aires, Argentina",
-      project1_desc: "Investigación de la degradación de electrodos durante la electroquimioterapia y desarrollo de estrategias para mejorar la durabilidad de los electrodos, la reproducibilidad del tratamiento y el rendimiento terapéutico general.",
-      tag1: "Electroporación",
-      tag2: "Electroquimioterapia",
-      tag3: "Degradación de Electrodos",
-      tag4: "Ingeniería Biomédica",
-      education_title: "Formación",
-      edu1_period: "2022 — 2028 (previsto)",
-      edu1_degree: "Estudiante de Medicina — 5.º Año",
-      edu1_subtitle: "Fundación H. A. Barceló — Instituto Universitario de Ciencias de la Salud · Buenos Aires, Argentina",
-      edu1_desc: "Programa de grado en Medicina con formación clínica integrada, rotaciones hospitalarias y fuerte énfasis en investigación y medicina basada en evidencia.",
-      languages_title: "Idiomas",
-      lang_pt_name: "Portugués",
-      lang_pt_level: "Nativo",
-      lang_es_name: "Español",
-      lang_es_level: "Fluido",
-      lang_en_name: "Inglés",
-      lang_en_level: "Competencia Profesional",
-      footer_location: "Buenos Aires, Argentina"
-    }
-  };
-
+  var translations = null;
+  var collections = null;
   var STORAGE_KEY = "preferredLang";
   var SUPPORTED = ["en", "pt", "es"];
 
@@ -151,9 +44,215 @@
     return "en";
   }
 
+  // Pulls a translated value out of a { en, pt, es } object, falling
+  // back to English, then to whatever language is present, then "".
+  function pick(field, lang) {
+    if (!field || typeof field !== "object") return "";
+    if (typeof field[lang] === "string" && field[lang]) return field[lang];
+    if (typeof field.en === "string" && field.en) return field.en;
+    for (var i = 0; i < SUPPORTED.length; i++) {
+      if (typeof field[SUPPORTED[i]] === "string" && field[SUPPORTED[i]]) return field[SUPPORTED[i]];
+    }
+    return "";
+  }
+
+  function pickList(field, lang) {
+    if (!field || typeof field !== "object") return [];
+    if (Array.isArray(field[lang])) return field[lang];
+    if (Array.isArray(field.en)) return field.en;
+    for (var i = 0; i < SUPPORTED.length; i++) {
+      if (Array.isArray(field[SUPPORTED[i]])) return field[SUPPORTED[i]];
+    }
+    return [];
+  }
+
+  function el(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text != null && text !== "") node.textContent = text;
+    return node;
+  }
+
+  // Builds one .project-card <li> used for all three collection
+  // types (projects, publications, certificates) — same visual
+  // language, different fields populated depending on what the
+  // item has.
+  function buildCard(item, lang, opts) {
+    var li = el("li", "project-card");
+
+    var periodText = (item && (item.period || item.year || item.date)) || "";
+    if (periodText) li.appendChild(el("span", "project-period", periodText));
+
+    var titleText = pick(item && item.title, lang);
+    if (titleText) li.appendChild(el("h3", "project-title", titleText));
+
+    var subtitleText = pick(item && (item.subtitle || item.venue || item.issuer), lang);
+    if (subtitleText) li.appendChild(el("p", "project-subtitle", subtitleText));
+
+    var descText = pick(item && item.desc, lang);
+    if (descText) li.appendChild(el("p", "project-desc", descText));
+
+    var tags = pickList(item && item.tags, lang);
+    if (tags.length) {
+      var tagList = el("ul", "tag-list");
+      tags.forEach(function (t) {
+        if (t) tagList.appendChild(el("li", "tag", t));
+      });
+      li.appendChild(tagList);
+    }
+
+    if (item && item.link) {
+      var linkRow = el("div", "project-link-row");
+      var a = document.createElement("a");
+      a.className = "project-link";
+      a.href = item.link;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.textContent = (opts && opts.linkLabel) || "View";
+      linkRow.appendChild(a);
+      li.appendChild(linkRow);
+    }
+
+    return li;
+  }
+
+  // `hideTargetId` is the element to hide entirely while `items` is empty
+  // (e.g. the "Certificates" block nested inside Education) — pass null
+  // for a list that should always stay visible (Projects, Education).
+  function renderList(containerId, hideTargetId, items, lang, opts) {
+    var container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = "";
+    (items || []).forEach(function (item) {
+      container.appendChild(buildCard(item, lang, opts));
+    });
+
+    if (hideTargetId) {
+      var hideTarget = document.getElementById(hideTargetId);
+      if (hideTarget) hideTarget.hidden = !items || items.length === 0;
+    }
+  }
+
+  // Education entries use a visually distinct card (no top border/
+  // shadow/tag pills — see .education-item in styles.css) rather than
+  // the .project-card look, so they get their own small builder.
+  function buildEducationCard(item, lang) {
+    var li = el("li", "education-item");
+
+    var periodText = (item && item.period) || "";
+    if (periodText) li.appendChild(el("span", "project-period", periodText));
+
+    var titleText = pick(item && item.title, lang);
+    if (titleText) li.appendChild(el("h3", "education-degree", titleText));
+
+    var subtitleText = pick(item && item.subtitle, lang);
+    if (subtitleText) li.appendChild(el("p", "project-subtitle", subtitleText));
+
+    var descText = pick(item && item.desc, lang);
+    if (descText) li.appendChild(el("p", "project-desc", descText));
+
+    return li;
+  }
+
+  function renderEducationList(lang) {
+    var container = document.getElementById("education-list");
+    if (!container) return;
+    container.innerHTML = "";
+    ((collections && collections.education) || []).forEach(function (item) {
+      container.appendChild(buildEducationCard(item, lang));
+    });
+  }
+
+  function renderCollections(lang) {
+    if (!collections) return;
+    var linkLabel = translations && translations[lang] && translations[lang].credential_link_label;
+    renderList("projects-list", null, collections.projects, lang, { linkLabel: linkLabel });
+    renderEducationList(lang);
+    // Certificates and Publications now live inside the Education section
+    // as sub-blocks that only appear once Maria has added at least one item.
+    renderList("certificates-list", "education-certificates-block", collections.certificates, lang, { linkLabel: linkLabel });
+    renderList("publications-list", "education-publications-block", collections.publications, lang, { linkLabel: linkLabel });
+    initScrollReveal();
+  }
+
+  // Education entries, certificates and publications fade/slide into view
+  // as the visitor scrolls through the Education section, rather than all
+  // appearing at once. Re-run after every render since the lists are
+  // rebuilt from scratch (innerHTML = "") on every language switch/save.
+  var revealObserver = null;
+  function initScrollReveal() {
+    var educationSection = document.getElementById("education");
+    if (!educationSection) return;
+    var items = educationSection.querySelectorAll(".project-card, .education-item");
+    if (!("IntersectionObserver" in window)) {
+      items.forEach(function (el) { el.classList.add("reveal-item", "is-visible"); });
+      return;
+    }
+    if (revealObserver) revealObserver.disconnect();
+    revealObserver = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-visible");
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15, rootMargin: "0px 0px -40px 0px" });
+    items.forEach(function (el) {
+      el.classList.add("reveal-item");
+      revealObserver.observe(el);
+    });
+  }
+
+  // Builds one full <section> for a Maria-created custom "topic" —
+  // its own heading, optional lead text, and a card grid of items
+  // (same card shape as projects/publications/certificates).
+  function buildCustomSection(sectionData, lang, index, opts) {
+    var section = el("section", "section" + (index % 2 === 0 ? " section-alt" : ""));
+    section.id = "custom-section-" + index;
+
+    var container = el("div", "container");
+
+    var titleText = pick(sectionData && sectionData.title, lang);
+    if (titleText) container.appendChild(el("h2", "section-title", titleText));
+
+    var leadText = pick(sectionData && sectionData.lead, lang);
+    if (leadText) container.appendChild(el("p", "section-lead", leadText));
+
+    var list = el("ul", "project-grid");
+    ((sectionData && sectionData.items) || []).forEach(function (item) {
+      list.appendChild(buildCard(item, lang, opts));
+    });
+    container.appendChild(list);
+
+    section.appendChild(container);
+    return section;
+  }
+
+  // Renders every custom section Maria has created via the admin
+  // panel. A section only appears once it has at least one item, so
+  // she can create and fill in a new topic without it going live
+  // half-finished. These are not linked from the nav menu above,
+  // since the list can grow to any number of topics.
+  function renderCustomSections(lang) {
+    var root = document.getElementById("custom-sections-container");
+    if (!root) return;
+    root.innerHTML = "";
+    if (!collections || !Array.isArray(collections.custom_sections)) return;
+
+    var linkLabel = translations && translations[lang] && translations[lang].credential_link_label;
+    var visibleIndex = 0;
+    collections.custom_sections.forEach(function (sectionData) {
+      var items = (sectionData && sectionData.items) || [];
+      if (!items.length) return; // hide incomplete/empty topics
+      root.appendChild(buildCustomSection(sectionData, lang, visibleIndex, { linkLabel: linkLabel }));
+      visibleIndex++;
+    });
+  }
+
   function applyLanguage(lang) {
+    if (!translations) return; // content.json hasn't loaded yet
     if (SUPPORTED.indexOf(lang) === -1) lang = "en";
-    var dict = translations[lang];
+    var dict = translations[lang] || translations.en;
     document.querySelectorAll("[data-i18n]").forEach(function (el) {
       var key = el.getAttribute("data-i18n");
       if (dict[key] != null) el.textContent = dict[key];
@@ -162,6 +261,21 @@
     document.querySelectorAll(".lang-btn").forEach(function (btn) {
       btn.classList.toggle("is-active", btn.getAttribute("data-lang") === lang);
     });
+
+    // Email/phone are editable values (same across languages), so the
+    // link targets are kept in sync with whatever the admin panel saved.
+    var emailLink = document.getElementById("contact-email-link");
+    if (emailLink && dict.contact_email_value) {
+      emailLink.href = "mailto:" + dict.contact_email_value;
+    }
+    var phoneLink = document.getElementById("contact-phone-link");
+    if (phoneLink && dict.contact_phone_value) {
+      var telDigits = dict.contact_phone_value.replace(/[^\d+]/g, "");
+      phoneLink.href = "tel:" + telDigits;
+    }
+
+    renderCollections(lang);
+    renderCustomSections(lang);
     window.__currentLang = lang;
   }
 
@@ -181,29 +295,7 @@
     }
   }
 
-  // 1) Apply immediately: saved preference, else a quick browser-language
-  //    guess, so there's no flash of the wrong language while we wait
-  //    on the network for country detection.
-  var saved = getSavedLang();
-  applyLanguage(saved || browserLangGuess());
-
-  // 2) If the visitor hasn't manually chosen a language before, refine
-  //    the guess using their country (IP-based geolocation), in case
-  //    it's more accurate than their browser/OS language setting.
-  if (!saved) {
-    fetch("https://ipapi.co/json/", { cache: "no-store" })
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (data) {
-        if (!data || getSavedLang()) return; // a manual choice may have happened meanwhile
-        var lang = countryToLang(data.country_code);
-        if (lang) applyLanguage(lang);
-      })
-      .catch(function () {
-        /* geolocation lookup failed/blocked — keep the browser-language guess */
-      });
-  }
-
-  // 3) Manual switcher always wins and is remembered.
+  // Manual switcher always wins and is remembered.
   document.querySelectorAll(".lang-btn").forEach(function (btn) {
     btn.addEventListener("click", function () {
       var lang = btn.getAttribute("data-lang");
@@ -211,4 +303,34 @@
       saveLang(lang);
     });
   });
+
+  // 1) Load the editable content, then apply it: saved preference,
+  //    else a quick browser-language guess.
+  fetch("/content.json", { cache: "no-store" })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      translations = data;
+      collections = data.collections || { projects: [], publications: [], certificates: [], education: [], custom_sections: [] };
+      var saved = getSavedLang();
+      applyLanguage(saved || browserLangGuess());
+
+      // 2) If the visitor hasn't manually chosen a language before,
+      //    refine the guess using their country (IP-based geolocation),
+      //    in case it's more accurate than their browser/OS setting.
+      if (!saved) {
+        fetch("https://ipapi.co/json/", { cache: "no-store" })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (geo) {
+            if (!geo || getSavedLang()) return; // a manual choice may have happened meanwhile
+            var lang = countryToLang(geo.country_code);
+            if (lang) applyLanguage(lang);
+          })
+          .catch(function () {
+            /* geolocation lookup failed/blocked — keep the browser-language guess */
+          });
+      }
+    })
+    .catch(function () {
+      /* content.json failed to load — page keeps its hardcoded English fallback text */
+    });
 })();

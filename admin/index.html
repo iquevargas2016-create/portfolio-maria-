@@ -92,6 +92,11 @@
     font-family: inherit; font-size: .92rem; resize: vertical;
   }
   .lang-row textarea { min-height: 4.5rem; }
+  .readonly-text {
+    width: 100%; padding: .5rem .65rem; border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface); color: var(--ink-muted); font-size: .92rem; min-height: 2.3rem;
+    white-space: pre-wrap; overflow-wrap: anywhere;
+  }
 
   /* Repeatable collection items (projects / publications / certificates) */
   .item-card {
@@ -167,60 +172,34 @@
 (function () {
   var TOKEN_KEY = "adminToken";
 
+  // Only genuinely variable, personal information is editable here — the
+  // site's base copy (nav labels, section titles/leads, button text, the
+  // bio paragraph, etc.) is fixed on purpose and isn't shown in this
+  // panel at all. Saving still preserves those fixed texts untouched
+  // (see collectContent()).
   var SECTIONS = [
-    { title: "Navegação", keys: ["skip_link", "nav_contact", "nav_projects", "nav_publications", "nav_certificates", "nav_education"] },
-    { title: "Topo (foto e apresentação)", keys: ["eyebrow", "institution", "graduation", "summary"] },
-    { title: "Contato", keys: ["contact_title", "contact_lead", "contact_email_label", "contact_email_value", "contact_phone_label", "contact_phone_value", "contact_location_label", "contact_location_value"] },
-    { title: "Seção Projetos (título e texto de apoio)", keys: ["projects_title", "projects_lead"] },
-    { title: "Seção Publicações (título e texto de apoio)", keys: ["publications_title", "publications_lead"] },
-    { title: "Seção Certificados (título e texto de apoio)", keys: ["certificates_title", "certificates_lead"] },
-    { title: "Seção Formação (título) e Idiomas", keys: ["education_title", "languages_title", "lang_pt_name", "lang_pt_level", "lang_es_name", "lang_es_level", "lang_en_name", "lang_en_level"] },
-    { title: "Outros textos", keys: ["credential_link_label", "footer_location"] }
+    { title: "Contato e Localização", keys: ["contact_email_value", "contact_phone_value", "contact_location_value"] },
+    { title: "Idiomas", keys: ["lang_pt_name", "lang_pt_level", "lang_es_name", "lang_es_level", "lang_en_name", "lang_en_level"] }
   ];
 
   var LABELS = {
-    skip_link: "Link de acessibilidade (“pular para conteúdo”)",
-    nav_contact: "Menu: Contato",
-    nav_projects: "Menu: Projetos",
-    nav_publications: "Menu: Publicações",
-    nav_certificates: "Menu: Certificados",
-    nav_education: "Menu: Formação",
-    eyebrow: "Selo acima do nome",
-    institution: "Instituição (linha abaixo do nome)",
-    graduation: "Data de formatura",
-    summary: "Resumo / bio (parágrafo principal)",
-    contact_title: "Título da seção Contato",
-    contact_lead: "Texto de apoio da seção Contato",
-    contact_email_label: "Rótulo: Email",
     contact_email_value: "Endereço de email exibido (o mesmo vale para os 3 idiomas)",
-    contact_phone_label: "Rótulo: Telefone",
     contact_phone_value: "Telefone exibido, com código do país (ex.: +54 11 6690-9485) — o mesmo vale para os 3 idiomas",
-    contact_location_label: "Rótulo: Localização",
-    contact_location_value: "Cidade/país exibido em Localização",
-    projects_title: "Título da seção Projetos",
-    projects_lead: "Texto de apoio da seção Projetos",
-    publications_title: "Título da seção Publicações",
-    publications_lead: "Texto de apoio da seção Publicações",
-    certificates_title: "Título da seção Certificados",
-    certificates_lead: "Texto de apoio da seção Certificados",
-    education_title: "Título da seção Formação",
-    languages_title: "Título da seção Idiomas",
+    contact_location_value: "Cidade/país exibido em Localização (o mesmo vale para os 3 idiomas)",
     lang_pt_name: "Nome do idioma: Português",
     lang_pt_level: "Nível: Português",
     lang_es_name: "Nome do idioma: Espanhol",
     lang_es_level: "Nível: Espanhol",
     lang_en_name: "Nome do idioma: Inglês",
-    lang_en_level: "Nível: Inglês",
-    credential_link_label: "Texto do botão de link de certificado/publicação (ex.: “Ver certificado”)",
-    footer_location: "Cidade/país no rodapé"
+    lang_en_level: "Nível: Inglês"
   };
 
-  var TEXTAREA_KEYS = ["summary", "contact_lead", "projects_lead", "publications_lead", "certificates_lead"];
+  var TEXTAREA_KEYS = [];
 
   // Fields that are the same regardless of language (an email address,
-  // a phone number) get a single input instead of three EN/PT/ES rows —
-  // the same value is written into all three language dictionaries.
-  var UNTRANSLATED_KEYS = ["contact_email_value", "contact_phone_value"];
+  // a phone number, a city) get a single input instead of three EN/PT/ES
+  // rows — the same value is written into all three language dictionaries.
+  var UNTRANSLATED_KEYS = ["contact_email_value", "contact_phone_value", "contact_location_value"];
 
   var LANGS = [
     { code: "en", tag: "EN" },
@@ -229,18 +208,22 @@
   ];
 
   // ---------------------------------------------------------
-  // Repeatable collections: Projects, Publications, Certificates,
-  // Education. Maria can add/remove/reorder items freely — the site
-  // hides a Publications/Certificates section entirely while its
-  // list is empty, so nothing needs to be filled in until she has
-  // real content to add. Projects and Education always stay visible
-  // (she starts with one entry in each).
+  // Repeatable collections: Projects, Education, Certificates,
+  // Publications. Maria can add new items or remove existing ones, and
+  // reorder them — but once an item has been saved, its text can no
+  // longer be edited in place; to change it she removes it and creates
+  // a new one (see the read-only rendering in renderItemList()).
+  // Certificates and Publications now render inside the Education
+  // section on the site (as sub-lists), and stay hidden there until
+  // the list has at least one item. Projects and Education always stay
+  // visible (she starts with one entry in each).
   // ---------------------------------------------------------
+  var LOCK_NOTE = " Depois de salvo, um item não pode mais ser editado — só removido. Para mudar o texto, remova e crie um novo.";
   var COLLECTIONS = [
     {
       key: "projects",
       title: "Projetos e Atuação (itens da lista)",
-      hint: "Aparecem na seção “Projetos e Atuação”, sempre visível no site.",
+      hint: "Aparecem na seção “Projetos e Atuação”, sempre visível no site." + LOCK_NOTE,
       periodField: { name: "period", label: "Ano / Período" },
       fields: [
         { name: "title", label: "Título", translated: true, type: "textarea" },
@@ -251,20 +234,20 @@
       ]
     },
     {
-      key: "publications",
-      title: "Artigos e Publicações (itens da lista)",
-      hint: "Aparecem numa seção “Publicações” própria. Enquanto a lista estiver vazia, essa seção não aparece no site.",
-      periodField: { name: "year", label: "Ano" },
+      key: "education",
+      title: "Formação (itens da lista)",
+      hint: "Aparecem na seção “Formação”, sempre visível no site. Use um item por curso/grau (ex.: se ela tiver uma graduação anterior, um intercâmbio, etc., pode adicionar mais de um)." + LOCK_NOTE,
+      periodField: { name: "period", label: "Período (ex.: 2022 — 2028)" },
       fields: [
-        { name: "title", label: "Título do artigo / trabalho", translated: true, type: "textarea" },
-        { name: "venue", label: "Revista / evento / onde foi publicado", translated: true, type: "text" },
-        { name: "link", label: "Link (DOI, PDF, etc. — opcional)", translated: false, type: "text" }
+        { name: "title", label: "Nome do curso / grau", translated: true, type: "text" },
+        { name: "subtitle", label: "Instituição", translated: true, type: "text" },
+        { name: "desc", label: "Descrição", translated: true, type: "textarea" }
       ]
     },
     {
       key: "certificates",
       title: "Certificados e Cursos (itens da lista)",
-      hint: "Aparecem numa seção “Certificados” própria. Enquanto a lista estiver vazia, essa seção não aparece no site.",
+      hint: "Aparecem dentro da seção “Formação”, junto com o resto do currículo. Enquanto a lista estiver vazia, esse bloco não aparece no site." + LOCK_NOTE,
       periodField: { name: "date", label: "Data / Ano" },
       fields: [
         { name: "title", label: "Nome do certificado / curso", translated: true, type: "textarea" },
@@ -273,14 +256,14 @@
       ]
     },
     {
-      key: "education",
-      title: "Formação (itens da lista)",
-      hint: "Aparecem na seção “Formação”, sempre visível no site — assim como Projetos. Use um item por curso/grau (ex.: se ela tiver uma graduação anterior, um intercâmbio, etc., pode adicionar mais de um).",
-      periodField: { name: "period", label: "Período (ex.: 2022 — 2028)" },
+      key: "publications",
+      title: "Artigos e Publicações (itens da lista)",
+      hint: "Aparecem dentro da seção “Formação”, junto com o resto do currículo. Enquanto a lista estiver vazia, esse bloco não aparece no site." + LOCK_NOTE,
+      periodField: { name: "year", label: "Ano" },
       fields: [
-        { name: "title", label: "Nome do curso / grau", translated: true, type: "text" },
-        { name: "subtitle", label: "Instituição", translated: true, type: "text" },
-        { name: "desc", label: "Descrição", translated: true, type: "textarea" }
+        { name: "title", label: "Título do artigo / trabalho", translated: true, type: "textarea" },
+        { name: "venue", label: "Revista / evento / onde foi publicado", translated: true, type: "text" },
+        { name: "link", label: "Link (DOI, PDF, etc. — opcional)", translated: false, type: "text" }
       ]
     }
   ];
@@ -295,6 +278,13 @@
   var statusEl = document.getElementById("status");
   var fieldRefs = {}; // key -> { en: input, pt: input, es: input }
   var collectionsData = { projects: [], publications: [], certificates: [], education: [] };
+  var originalContent = null; // the site's fixed texts, exactly as loaded — never edited by this panel
+
+  // Marks every item in a list as already-saved (read-only in the UI).
+  function markExisting(list) {
+    (list || []).forEach(function (item) { item._existing = true; });
+    return list || [];
+  }
 
   function getToken() {
     try { return sessionStorage.getItem(TOKEN_KEY); } catch (e) { return null; }
@@ -458,11 +448,34 @@
     });
   }
 
-  // Generic item-list renderer, shared by the three fixed collections
-  // (projects/publications/certificates) AND by the items inside every
-  // custom section Maria creates. `list` is mutated in place; `onChange`
-  // re-renders (called after add/remove/reorder — never on every
-  // keystroke, so typing never loses focus).
+  // Renders one field's value as plain read-only text (used once an item
+  // is locked — see below) instead of an input, so Maria can still see
+  // what's there without being able to type into it.
+  function appendReadonlyRow(field, tag, text) {
+    var row = document.createElement("div");
+    row.className = "lang-row";
+    var tagEl = document.createElement("div");
+    tagEl.className = "lang-tag";
+    tagEl.textContent = tag;
+    row.appendChild(tagEl);
+    var value = document.createElement("div");
+    value.className = "readonly-text";
+    value.textContent = text || "—";
+    row.appendChild(value);
+    field.appendChild(row);
+  }
+
+  // Generic item-list renderer, shared by the four fixed collections
+  // (projects/education/certificates/publications) AND by the items
+  // inside every custom section Maria creates. `list` is mutated in
+  // place; `onChange` re-renders (called after add/remove/reorder —
+  // never on every keystroke, so typing never loses focus).
+  //
+  // Once an item has been saved (item._existing === true), its text
+  // fields render as read-only — she can reorder or remove it, but not
+  // edit the text in place. A newly added, not-yet-saved item still
+  // renders as an editable form. This is intentional: to change an
+  // existing item's text, she removes it and creates a new one.
   function renderItemList(containerId, list, fieldsDef, periodField, onChange) {
     var wrap = document.getElementById(containerId);
     if (!wrap) return;
@@ -477,6 +490,7 @@
     }
 
     list.forEach(function (item, index) {
+      var locked = !!item._existing;
       var itemCard = document.createElement("div");
       itemCard.className = "item-card";
 
@@ -485,7 +499,7 @@
 
       var itemLabel = document.createElement("span");
       itemLabel.className = "item-label";
-      itemLabel.textContent = "Item #" + (index + 1);
+      itemLabel.textContent = "Item #" + (index + 1) + (locked ? " (já salvo)" : " (novo — ainda não salvo)");
       itemHead.appendChild(itemLabel);
 
       var btnRow = document.createElement("div");
@@ -532,6 +546,14 @@
       itemHead.appendChild(btnRow);
       itemCard.appendChild(itemHead);
 
+      if (locked) {
+        var lockedNote = document.createElement("p");
+        lockedNote.className = "collection-hint";
+        lockedNote.style.margin = "-.4rem 0 .9rem";
+        lockedNote.textContent = "Já salvo — o texto não pode mais ser editado aqui. Para mudar, remova e crie um novo item.";
+        itemCard.appendChild(lockedNote);
+      }
+
       // Period-like field (untranslated, single value: period / year / date)
       var pf = periodField;
       var pField = document.createElement("div");
@@ -539,11 +561,18 @@
       var pLabel = document.createElement("label");
       pLabel.textContent = pf.label;
       pField.appendChild(pLabel);
-      var pInput = document.createElement("input");
-      pInput.type = "text";
-      pInput.value = item[pf.name] || "";
-      pInput.addEventListener("input", function (e) { item[pf.name] = e.target.value; });
-      pField.appendChild(pInput);
+      if (locked) {
+        var pText = document.createElement("div");
+        pText.className = "readonly-text";
+        pText.textContent = item[pf.name] || "—";
+        pField.appendChild(pText);
+      } else {
+        var pInput = document.createElement("input");
+        pInput.type = "text";
+        pInput.value = item[pf.name] || "";
+        pInput.addEventListener("input", function (e) { item[pf.name] = e.target.value; });
+        pField.appendChild(pInput);
+      }
       itemCard.appendChild(pField);
 
       fieldsDef.forEach(function (f) {
@@ -554,16 +583,35 @@
         field.appendChild(label);
 
         if (!f.translated) {
-          var input = document.createElement("input");
-          input.type = "text";
-          input.value = item[f.name] || "";
-          input.addEventListener("input", function (e) { item[f.name] = e.target.value; });
-          field.appendChild(input);
+          if (locked) {
+            var readonlyPlain = document.createElement("div");
+            readonlyPlain.className = "readonly-text";
+            readonlyPlain.textContent = item[f.name] || "—";
+            field.appendChild(readonlyPlain);
+          } else {
+            var input = document.createElement("input");
+            input.type = "text";
+            input.value = item[f.name] || "";
+            input.addEventListener("input", function (e) { item[f.name] = e.target.value; });
+            field.appendChild(input);
+          }
         } else {
           if (!item[f.name] || typeof item[f.name] !== "object") {
             item[f.name] = { en: "", pt: "", es: "" };
           }
           LANGS.forEach(function (lang) {
+            if (locked) {
+              var displayText;
+              if (f.type === "taglist") {
+                var arr0 = Array.isArray(item[f.name][lang.code]) ? item[f.name][lang.code] : [];
+                displayText = arr0.join(", ");
+              } else {
+                displayText = item[f.name][lang.code];
+              }
+              appendReadonlyRow(field, lang.tag, displayText);
+              return;
+            }
+
             var row = document.createElement("div");
             row.className = "lang-row";
             var tag = document.createElement("div");
@@ -658,7 +706,7 @@
     header.appendChild(h3);
     var hint = document.createElement("p");
     hint.className = "collection-hint";
-    hint.textContent = "Crie seções totalmente novas — por exemplo “Voluntariado”, “Prêmios”, “Habilidades”, o que fizer sentido. Cada seção só aparece no site depois de ter pelo menos 1 item, e aparece no final da página (depois de Formação). Elas não entram no menu do topo.";
+    hint.textContent = "Crie seções totalmente novas — por exemplo “Voluntariado”, “Prêmios”, “Habilidades”, o que fizer sentido. Cada seção só aparece no site depois de ter pelo menos 1 item, e aparece no final da página (depois de Formação). Elas não entram no menu do topo." + LOCK_NOTE;
     header.appendChild(hint);
     var addSectionBtn = document.createElement("button");
     addSectionBtn.type = "button";
@@ -740,6 +788,14 @@
       head.appendChild(btnRow);
       card.appendChild(head);
 
+      var sectionLocked = !!section._existing;
+      if (sectionLocked) {
+        var sectionLockedNote = document.createElement("p");
+        sectionLockedNote.className = "collection-hint";
+        sectionLockedNote.textContent = "Esta seção já foi salva — o título e o texto de apoio não podem mais ser editados aqui. Para mudar, remova a seção inteira e crie outra.";
+        card.appendChild(sectionLockedNote);
+      }
+
       // Section title (translated, single line)
       var titleField = document.createElement("div");
       titleField.className = "field";
@@ -748,6 +804,10 @@
       titleField.appendChild(titleLabel);
       if (!section.title) section.title = { en: "", pt: "", es: "" };
       LANGS.forEach(function (lang) {
+        if (sectionLocked) {
+          appendReadonlyRow(titleField, lang.tag, section.title[lang.code]);
+          return;
+        }
         var row = document.createElement("div");
         row.className = "lang-row";
         var tag = document.createElement("div");
@@ -771,6 +831,10 @@
       leadField.appendChild(leadLabel);
       if (!section.lead) section.lead = { en: "", pt: "", es: "" };
       LANGS.forEach(function (lang) {
+        if (sectionLocked) {
+          appendReadonlyRow(leadField, lang.tag, section.lead[lang.code]);
+          return;
+        }
         var row = document.createElement("div");
         row.className = "lang-row";
         var tag = document.createElement("div");
@@ -827,6 +891,24 @@
   // ---------------------------------------------------------
   var MAX_PHOTO_DIMENSION = 900;
   var PHOTO_JPEG_QUALITY = 0.85;
+  var pendingPhotoDataUrl = null;
+
+  // Always center-crops to a square before returning a data URL, so the
+  // saved photo can never come out stretched or in a different
+  // proportion than the frame it's displayed in on the site — only
+  // ever a proper, undistorted crop.
+  function centerCropToSquareDataUrl(img, maxDim, quality) {
+    var srcSize = Math.min(img.width, img.height);
+    var sx = (img.width - srcSize) / 2;
+    var sy = (img.height - srcSize) / 2;
+    var outSize = Math.min(maxDim, srcSize);
+    var canvas = document.createElement("canvas");
+    canvas.width = outSize;
+    canvas.height = outSize;
+    var ctx = canvas.getContext("2d");
+    ctx.drawImage(img, sx, sy, srcSize, srcSize, 0, 0, outSize, outSize);
+    return canvas.toDataURL("image/jpeg", quality);
+  }
 
   function buildPhotoCard() {
     photoCardRoot.innerHTML = "";
@@ -840,7 +922,7 @@
 
     var hint = document.createElement("p");
     hint.className = "collection-hint";
-    hint.textContent = "Aparece no topo do site. Formatos aceitos: JPG, PNG ou WEBP — a imagem é redimensionada automaticamente.";
+    hint.textContent = "Aparece no topo do site. Formatos aceitos: JPG, PNG ou WEBP — a imagem é recortada automaticamente no centro para ficar quadrada (mesma proporção da foto atual), sem esticar ou distorcer, e depois redimensionada.";
     card.appendChild(hint);
 
     var row = document.createElement("div");
@@ -889,59 +971,17 @@
     fileInput.addEventListener("change", function (e) {
       var file = e.target.files[0];
       if (!file) return;
-      var reader = new FileReader();
-      reader.onload = function (ev) {
-        preview.src = ev.target.result;
-      };
-      reader.readAsDataURL(file);
-    });
-
-    saveBtn.addEventListener("click", function () {
-      var file = fileInput.files[0];
-      if (!file) {
-        photoStatus.textContent = "Escolha uma foto primeiro.";
-        photoStatus.className = "err";
-        return;
-      }
-      var token = getToken();
-      if (!token) { showLogin("Sua sessão expirou. Entre novamente."); return; }
-
-      photoStatus.textContent = "Preparando imagem…";
+      pendingPhotoDataUrl = null;
+      photoStatus.textContent = "Recortando…";
       photoStatus.className = "";
-
       var reader = new FileReader();
       reader.onload = function (ev) {
         var img = new Image();
         img.onload = function () {
-          var scale = Math.min(1, MAX_PHOTO_DIMENSION / Math.max(img.width, img.height));
-          var canvas = document.createElement("canvas");
-          canvas.width = Math.round(img.width * scale);
-          canvas.height = Math.round(img.height * scale);
-          var ctx = canvas.getContext("2d");
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          var dataUrl = canvas.toDataURL("image/jpeg", PHOTO_JPEG_QUALITY);
-
-          photoStatus.textContent = "Salvando foto…";
-          fetch("/api/save-photo", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token: token, imageBase64: dataUrl })
-          })
-            .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
-            .then(function (res) {
-              if (!res.ok) {
-                photoStatus.textContent = res.data.error || "Erro ao salvar a foto.";
-                photoStatus.className = "err";
-                if (res.data.error && res.data.error.indexOf("expirad") !== -1) clearToken();
-                return;
-              }
-              photoStatus.textContent = "Foto salva! O site atualiza em cerca de 1 minuto.";
-              photoStatus.className = "ok";
-            })
-            .catch(function () {
-              photoStatus.textContent = "Erro de conexão. Tenta salvar de novo.";
-              photoStatus.className = "err";
-            });
+          var cropped = centerCropToSquareDataUrl(img, MAX_PHOTO_DIMENSION, PHOTO_JPEG_QUALITY);
+          pendingPhotoDataUrl = cropped;
+          preview.src = cropped; // shows exactly what will be saved
+          photoStatus.textContent = "Pronto — confira o recorte acima e clique em “Salvar nova foto”.";
         };
         img.onerror = function () {
           photoStatus.textContent = "Não consegui ler essa imagem. Tenta outro arquivo.";
@@ -955,18 +995,96 @@
       };
       reader.readAsDataURL(file);
     });
+
+    saveBtn.addEventListener("click", function () {
+      if (!pendingPhotoDataUrl) {
+        photoStatus.textContent = "Escolha uma foto primeiro.";
+        photoStatus.className = "err";
+        return;
+      }
+      var token = getToken();
+      if (!token) { showLogin("Sua sessão expirou. Entre novamente."); return; }
+
+      photoStatus.textContent = "Salvando foto…";
+      photoStatus.className = "";
+
+      fetch("/api/save-photo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: token, imageBase64: pendingPhotoDataUrl })
+      })
+        .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
+        .then(function (res) {
+          if (!res.ok) {
+            photoStatus.textContent = res.data.error || "Erro ao salvar a foto.";
+            photoStatus.className = "err";
+            if (res.data.error && res.data.error.indexOf("expirad") !== -1) clearToken();
+            return;
+          }
+          photoStatus.textContent = "Foto salva! O site atualiza em cerca de 1 minuto.";
+          photoStatus.className = "ok";
+        })
+        .catch(function () {
+          photoStatus.textContent = "Erro de conexão. Tenta salvar de novo.";
+          photoStatus.className = "err";
+        });
+    });
+  }
+
+  // Strips the admin-only "_existing" bookkeeping flag before sending an
+  // item to the server, so it never ends up persisted in content.json.
+  function cleanItem(item) {
+    var copy = {};
+    Object.keys(item).forEach(function (k) {
+      if (k !== "_existing") copy[k] = item[k];
+    });
+    return copy;
   }
 
   function collectContent() {
+    // Start from the content exactly as loaded, so every fixed text this
+    // panel no longer shows (nav labels, section titles/leads, the bio
+    // paragraph, button text, etc.) is preserved untouched.
     var out = { en: {}, pt: {}, es: {} };
+    LANGS.forEach(function (lang) {
+      out[lang.code] = Object.assign({}, (originalContent && originalContent[lang.code]) || {});
+    });
+    // Then overlay only the fields this panel actually makes editable.
     Object.keys(fieldRefs).forEach(function (key) {
       LANGS.forEach(function (lang) {
         out[lang.code][key] = fieldRefs[key][lang.code].value;
       });
     });
-    out.collections = collectionsData;
-    out.collections.custom_sections = customSectionsData;
+
+    var cleanCollections = {};
+    Object.keys(collectionsData).forEach(function (key) {
+      if (key === "custom_sections") return;
+      cleanCollections[key] = (collectionsData[key] || []).map(cleanItem);
+    });
+    cleanCollections.custom_sections = customSectionsData.map(function (section) {
+      return {
+        title: section.title,
+        lead: section.lead,
+        _existing: section._existing, // stripped just below
+        items: (section.items || []).map(cleanItem)
+      };
+    }).map(cleanItem);
+
+    out.collections = cleanCollections;
     return out;
+  }
+
+  // Marks everything currently in memory as already-saved, so the panel
+  // immediately renders it read-only without needing a page reload.
+  function lockEverythingAsExisting() {
+    Object.keys(collectionsData).forEach(function (key) {
+      if (key === "custom_sections") return;
+      (collectionsData[key] || []).forEach(function (item) { item._existing = true; });
+    });
+    customSectionsData.forEach(function (section) {
+      section._existing = true;
+      (section.items || []).forEach(function (item) { item._existing = true; });
+    });
   }
 
   function loadEditor() {
@@ -979,6 +1097,7 @@
     fetch("/content.json", { cache: "no-store" })
       .then(function (r) { return r.json(); })
       .then(function (content) {
+        originalContent = { en: content.en || {}, pt: content.pt || {}, es: content.es || {} };
         buildPhotoCard();
         buildForm(content);
         collectionsData = content.collections && typeof content.collections === "object"
@@ -988,7 +1107,15 @@
         if (!Array.isArray(collectionsData.publications)) collectionsData.publications = [];
         if (!Array.isArray(collectionsData.certificates)) collectionsData.certificates = [];
         if (!Array.isArray(collectionsData.education)) collectionsData.education = [];
+        markExisting(collectionsData.projects);
+        markExisting(collectionsData.publications);
+        markExisting(collectionsData.certificates);
+        markExisting(collectionsData.education);
         customSectionsData = Array.isArray(collectionsData.custom_sections) ? collectionsData.custom_sections : [];
+        customSectionsData.forEach(function (section) {
+          section._existing = true;
+          markExisting(section.items);
+        });
         buildCollectionsUI();
         buildCustomSectionsUI();
         editorLoading.style.display = "none";
@@ -1058,6 +1185,9 @@
         }
         statusEl.textContent = "Salvo! O site atualiza em cerca de 1 minuto.";
         statusEl.className = "ok";
+        lockEverythingAsExisting();
+        buildCollectionsUI();
+        renderCustomSectionsList();
       })
       .catch(function () {
         statusEl.textContent = "Erro de conexão. Tenta salvar de novo.";

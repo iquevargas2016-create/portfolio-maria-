@@ -196,6 +196,7 @@ ul { padding: 0; list-style: none; }
 
 /* Sections */
 .section { padding-block: 2.75rem; }
+.section[hidden] { display: none; } /* publications/certificates before any items exist */
 .section-alt { background: var(--surface); border-block: 1px solid var(--border); }
 .section-title {
   position: relative;
@@ -224,6 +225,19 @@ ul { padding: 0; list-style: none; }
   font-weight: 600;
   font-size: 1.15rem;
   margin-top: 2.25rem;
+}
+.sub-lead { color: var(--ink-muted); margin-top: .5rem; max-width: 42rem; }
+
+/* Items inside Education (education entries, certificates, publications)
+   fade/slide into view as the visitor scrolls down the section. */
+.reveal-item {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity .55s ease, transform .55s ease;
+}
+.reveal-item.is-visible { opacity: 1; transform: translateY(0); }
+@media (prefers-reduced-motion: reduce) {
+  .reveal-item { opacity: 1; transform: none; transition: none; }
 }
 
 @media (min-width: 48rem) {
