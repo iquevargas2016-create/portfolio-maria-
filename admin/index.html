@@ -74,6 +74,7 @@
     font-family: var(--font-display); color: var(--brand-strong); margin: 0 0 1rem;
     font-size: 1.15rem; border-bottom: 1px solid var(--border); padding-bottom: .6rem;
   }
+  .collection-hint { color: var(--ink-muted); font-size: .85rem; margin: -.5rem 0 1rem; }
   .field { margin-bottom: 1rem; }
   .field:last-child { margin-bottom: 0; }
   .field label {
@@ -86,11 +87,38 @@
     font-size: .72rem; font-weight: 700; color: var(--brand-strong); background: var(--brand-soft);
     border-radius: 4px; padding: .3rem 0; text-align: center; margin-top: .1rem;
   }
-  .lang-row input, .lang-row textarea {
+  .lang-row input, .lang-row textarea, .field > input {
     width: 100%; padding: .5rem .65rem; border: 1px solid var(--border); border-radius: var(--radius);
     font-family: inherit; font-size: .92rem; resize: vertical;
   }
   .lang-row textarea { min-height: 4.5rem; }
+
+  /* Repeatable collection items (projects / publications / certificates) */
+  .item-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 1rem 1.1rem; margin-bottom: 1rem;
+  }
+  .item-card:last-of-type { margin-bottom: 0; }
+  .item-head {
+    display: flex; align-items: center; justify-content: space-between; gap: .6rem;
+    margin-bottom: .9rem; flex-wrap: wrap;
+  }
+  .item-label { font-weight: 700; color: var(--brand-strong); font-size: .95rem; }
+  .item-btn-row { display: flex; gap: .4rem; flex-wrap: wrap; }
+  .btn-move, .btn-remove, .btn-add {
+    font-family: inherit; font-size: .78rem; font-weight: 600; cursor: pointer;
+    border-radius: 4px; padding: .35rem .6rem; border: 1px solid var(--border); background: var(--bg);
+    color: var(--ink);
+  }
+  .btn-move:hover { border-color: var(--brand); color: var(--brand-strong); }
+  .btn-remove { color: #b3261e; border-color: #f0c9c5; }
+  .btn-remove:hover { background: #fdf1f0; }
+  .btn-add {
+    margin-top: .5rem; border-style: dashed; color: var(--brand-strong); border-color: var(--brand);
+    width: 100%; padding: .6rem; background: var(--brand-soft);
+  }
+  .btn-add:hover { background: var(--brand-soft); filter: brightness(0.97); }
+  .collection-empty { color: var(--ink-muted); font-size: .88rem; font-style: italic; margin: 0 0 .75rem; }
 
   .toolbar {
     position: sticky; bottom: 0; background: var(--bg); border-top: 1px solid var(--border);
@@ -121,7 +149,10 @@
 
   <div id="editor">
     <div id="editor-loading">Carregando conteúdo…</div>
+    <div id="photo-card-root"></div>
     <div id="sections"></div>
+    <div id="collections-root"></div>
+    <div id="custom-sections-root"></div>
   </div>
 
 </div>
@@ -137,18 +168,22 @@
   var TOKEN_KEY = "adminToken";
 
   var SECTIONS = [
-    { title: "Navegação", keys: ["skip_link", "nav_contact", "nav_projects", "nav_education"] },
+    { title: "Navegação", keys: ["skip_link", "nav_contact", "nav_projects", "nav_publications", "nav_certificates", "nav_education"] },
     { title: "Topo (foto e apresentação)", keys: ["eyebrow", "institution", "graduation", "summary"] },
-    { title: "Contato", keys: ["contact_title", "contact_lead", "contact_email_label", "contact_phone_label", "contact_location_label", "contact_location_value"] },
-    { title: "Projetos", keys: ["projects_title", "projects_lead", "project1_period", "project1_title", "project1_subtitle", "project1_desc", "tag1", "tag2", "tag3", "tag4"] },
-    { title: "Formação e idiomas", keys: ["education_title", "edu1_period", "edu1_degree", "edu1_subtitle", "edu1_desc", "languages_title", "lang_pt_name", "lang_pt_level", "lang_es_name", "lang_es_level", "lang_en_name", "lang_en_level"] },
-    { title: "Rodapé", keys: ["footer_location"] }
+    { title: "Contato", keys: ["contact_title", "contact_lead", "contact_email_label", "contact_email_value", "contact_phone_label", "contact_phone_value", "contact_location_label", "contact_location_value"] },
+    { title: "Seção Projetos (título e texto de apoio)", keys: ["projects_title", "projects_lead"] },
+    { title: "Seção Publicações (título e texto de apoio)", keys: ["publications_title", "publications_lead"] },
+    { title: "Seção Certificados (título e texto de apoio)", keys: ["certificates_title", "certificates_lead"] },
+    { title: "Seção Formação (título) e Idiomas", keys: ["education_title", "languages_title", "lang_pt_name", "lang_pt_level", "lang_es_name", "lang_es_level", "lang_en_name", "lang_en_level"] },
+    { title: "Outros textos", keys: ["credential_link_label", "footer_location"] }
   ];
 
   var LABELS = {
     skip_link: "Link de acessibilidade (“pular para conteúdo”)",
     nav_contact: "Menu: Contato",
     nav_projects: "Menu: Projetos",
+    nav_publications: "Menu: Publicações",
+    nav_certificates: "Menu: Certificados",
     nav_education: "Menu: Formação",
     eyebrow: "Selo acima do nome",
     institution: "Instituição (linha abaixo do nome)",
@@ -157,21 +192,18 @@
     contact_title: "Título da seção Contato",
     contact_lead: "Texto de apoio da seção Contato",
     contact_email_label: "Rótulo: Email",
+    contact_email_value: "Endereço de email exibido (o mesmo vale para os 3 idiomas)",
     contact_phone_label: "Rótulo: Telefone",
+    contact_phone_value: "Telefone exibido, com código do país (ex.: +54 11 6690-9485) — o mesmo vale para os 3 idiomas",
     contact_location_label: "Rótulo: Localização",
     contact_location_value: "Cidade/país exibido em Localização",
     projects_title: "Título da seção Projetos",
     projects_lead: "Texto de apoio da seção Projetos",
-    project1_period: "Ano do projeto",
-    project1_title: "Título do projeto",
-    project1_subtitle: "Subtítulo do projeto (cargo / instituição)",
-    project1_desc: "Descrição do projeto",
-    tag1: "Tag 1", tag2: "Tag 2", tag3: "Tag 3", tag4: "Tag 4",
+    publications_title: "Título da seção Publicações",
+    publications_lead: "Texto de apoio da seção Publicações",
+    certificates_title: "Título da seção Certificados",
+    certificates_lead: "Texto de apoio da seção Certificados",
     education_title: "Título da seção Formação",
-    edu1_period: "Período do curso",
-    edu1_degree: "Nome do curso / grau",
-    edu1_subtitle: "Instituição do curso",
-    edu1_desc: "Descrição do curso",
     languages_title: "Título da seção Idiomas",
     lang_pt_name: "Nome do idioma: Português",
     lang_pt_level: "Nível: Português",
@@ -179,10 +211,16 @@
     lang_es_level: "Nível: Espanhol",
     lang_en_name: "Nome do idioma: Inglês",
     lang_en_level: "Nível: Inglês",
+    credential_link_label: "Texto do botão de link de certificado/publicação (ex.: “Ver certificado”)",
     footer_location: "Cidade/país no rodapé"
   };
 
-  var TEXTAREA_KEYS = ["summary", "contact_lead", "projects_lead", "project1_title", "project1_subtitle", "project1_desc", "edu1_subtitle", "edu1_desc"];
+  var TEXTAREA_KEYS = ["summary", "contact_lead", "projects_lead", "publications_lead", "certificates_lead"];
+
+  // Fields that are the same regardless of language (an email address,
+  // a phone number) get a single input instead of three EN/PT/ES rows —
+  // the same value is written into all three language dictionaries.
+  var UNTRANSLATED_KEYS = ["contact_email_value", "contact_phone_value"];
 
   var LANGS = [
     { code: "en", tag: "EN" },
@@ -190,13 +228,73 @@
     { code: "es", tag: "ES" }
   ];
 
+  // ---------------------------------------------------------
+  // Repeatable collections: Projects, Publications, Certificates,
+  // Education. Maria can add/remove/reorder items freely — the site
+  // hides a Publications/Certificates section entirely while its
+  // list is empty, so nothing needs to be filled in until she has
+  // real content to add. Projects and Education always stay visible
+  // (she starts with one entry in each).
+  // ---------------------------------------------------------
+  var COLLECTIONS = [
+    {
+      key: "projects",
+      title: "Projetos e Atuação (itens da lista)",
+      hint: "Aparecem na seção “Projetos e Atuação”, sempre visível no site.",
+      periodField: { name: "period", label: "Ano / Período" },
+      fields: [
+        { name: "title", label: "Título", translated: true, type: "textarea" },
+        { name: "subtitle", label: "Subtítulo (cargo / instituição)", translated: true, type: "text" },
+        { name: "desc", label: "Descrição", translated: true, type: "textarea" },
+        { name: "tags", label: "Tags (separe por vírgula)", translated: true, type: "taglist" },
+        { name: "link", label: "Link (opcional)", translated: false, type: "text" }
+      ]
+    },
+    {
+      key: "publications",
+      title: "Artigos e Publicações (itens da lista)",
+      hint: "Aparecem numa seção “Publicações” própria. Enquanto a lista estiver vazia, essa seção não aparece no site.",
+      periodField: { name: "year", label: "Ano" },
+      fields: [
+        { name: "title", label: "Título do artigo / trabalho", translated: true, type: "textarea" },
+        { name: "venue", label: "Revista / evento / onde foi publicado", translated: true, type: "text" },
+        { name: "link", label: "Link (DOI, PDF, etc. — opcional)", translated: false, type: "text" }
+      ]
+    },
+    {
+      key: "certificates",
+      title: "Certificados e Cursos (itens da lista)",
+      hint: "Aparecem numa seção “Certificados” própria. Enquanto a lista estiver vazia, essa seção não aparece no site.",
+      periodField: { name: "date", label: "Data / Ano" },
+      fields: [
+        { name: "title", label: "Nome do certificado / curso", translated: true, type: "textarea" },
+        { name: "issuer", label: "Instituição emissora", translated: true, type: "text" },
+        { name: "link", label: "Link do certificado (opcional)", translated: false, type: "text" }
+      ]
+    },
+    {
+      key: "education",
+      title: "Formação (itens da lista)",
+      hint: "Aparecem na seção “Formação”, sempre visível no site — assim como Projetos. Use um item por curso/grau (ex.: se ela tiver uma graduação anterior, um intercâmbio, etc., pode adicionar mais de um).",
+      periodField: { name: "period", label: "Período (ex.: 2022 — 2028)" },
+      fields: [
+        { name: "title", label: "Nome do curso / grau", translated: true, type: "text" },
+        { name: "subtitle", label: "Instituição", translated: true, type: "text" },
+        { name: "desc", label: "Descrição", translated: true, type: "textarea" }
+      ]
+    }
+  ];
+
   var loginScreen = document.getElementById("login-screen");
   var editor = document.getElementById("editor");
   var editorLoading = document.getElementById("editor-loading");
+  var photoCardRoot = document.getElementById("photo-card-root");
   var sectionsEl = document.getElementById("sections");
+  var collectionsRoot = document.getElementById("collections-root");
   var toolbar = document.getElementById("toolbar");
   var statusEl = document.getElementById("status");
   var fieldRefs = {}; // key -> { en: input, pt: input, es: input }
+  var collectionsData = { projects: [], publications: [], certificates: [], education: [] };
 
   function getToken() {
     try { return sessionStorage.getItem(TOKEN_KEY); } catch (e) { return null; }
@@ -243,29 +341,619 @@
 
         fieldRefs[key] = {};
 
-        LANGS.forEach(function (lang) {
-          var row = document.createElement("div");
-          row.className = "lang-row";
+        if (UNTRANSLATED_KEYS.indexOf(key) !== -1) {
+          // One value shared across all three languages: a single input,
+          // wired into all three fieldRefs slots so collectContent()
+          // writes the same text into en/pt/es without special-casing.
+          var singleInput = document.createElement("input");
+          singleInput.type = "text";
+          singleInput.value = (content.en && content.en[key]) || "";
+          field.appendChild(singleInput);
+          LANGS.forEach(function (lang) {
+            fieldRefs[key][lang.code] = singleInput;
+          });
+        } else {
+          LANGS.forEach(function (lang) {
+            var row = document.createElement("div");
+            row.className = "lang-row";
 
-          var tag = document.createElement("div");
-          tag.className = "lang-tag";
-          tag.textContent = lang.tag;
-          row.appendChild(tag);
+            var tag = document.createElement("div");
+            tag.className = "lang-tag";
+            tag.textContent = lang.tag;
+            row.appendChild(tag);
 
-          var isLong = TEXTAREA_KEYS.indexOf(key) !== -1;
-          var input = document.createElement(isLong ? "textarea" : "input");
-          if (!isLong) input.type = "text";
-          input.value = (content[lang.code] && content[lang.code][key]) || "";
-          row.appendChild(input);
+            var isLong = TEXTAREA_KEYS.indexOf(key) !== -1;
+            var input = document.createElement(isLong ? "textarea" : "input");
+            if (!isLong) input.type = "text";
+            input.value = (content[lang.code] && content[lang.code][key]) || "";
+            row.appendChild(input);
 
-          fieldRefs[key][lang.code] = input;
-          field.appendChild(row);
-        });
+            fieldRefs[key][lang.code] = input;
+            field.appendChild(row);
+          });
+        }
 
         card.appendChild(field);
       });
 
       sectionsEl.appendChild(card);
+    });
+  }
+
+  // ---- Collections: blank item factories -------------------
+
+  function blankItem(key) {
+    if (key === "projects") {
+      return {
+        period: "",
+        title: { en: "", pt: "", es: "" },
+        subtitle: { en: "", pt: "", es: "" },
+        desc: { en: "", pt: "", es: "" },
+        tags: { en: [], pt: [], es: [] },
+        link: ""
+      };
+    }
+    if (key === "publications") {
+      return {
+        year: "",
+        title: { en: "", pt: "", es: "" },
+        venue: { en: "", pt: "", es: "" },
+        link: ""
+      };
+    }
+    if (key === "certificates") {
+      return {
+        date: "",
+        title: { en: "", pt: "", es: "" },
+        issuer: { en: "", pt: "", es: "" },
+        link: ""
+      };
+    }
+    if (key === "education") {
+      return {
+        period: "",
+        title: { en: "", pt: "", es: "" },
+        subtitle: { en: "", pt: "", es: "" },
+        desc: { en: "", pt: "", es: "" }
+      };
+    }
+    return {};
+  }
+
+  // ---- Collections: rendering -------------------------------
+
+  function buildCollectionsUI() {
+    collectionsRoot.innerHTML = "";
+    COLLECTIONS.forEach(function (colDef) {
+      var card = document.createElement("div");
+      card.className = "section-card";
+
+      var h3 = document.createElement("h3");
+      h3.textContent = colDef.title;
+      card.appendChild(h3);
+
+      if (colDef.hint) {
+        var hint = document.createElement("p");
+        hint.className = "collection-hint";
+        hint.textContent = colDef.hint;
+        card.appendChild(hint);
+      }
+
+      var itemsWrap = document.createElement("div");
+      itemsWrap.id = "collection-items-" + colDef.key;
+      card.appendChild(itemsWrap);
+
+      var addBtn = document.createElement("button");
+      addBtn.type = "button";
+      addBtn.className = "btn-add";
+      addBtn.textContent = "+ Adicionar novo";
+      addBtn.addEventListener("click", function () {
+        collectionsData[colDef.key].push(blankItem(colDef.key));
+        renderCollectionItems(colDef);
+      });
+      card.appendChild(addBtn);
+
+      collectionsRoot.appendChild(card);
+      renderCollectionItems(colDef);
+    });
+  }
+
+  // Generic item-list renderer, shared by the three fixed collections
+  // (projects/publications/certificates) AND by the items inside every
+  // custom section Maria creates. `list` is mutated in place; `onChange`
+  // re-renders (called after add/remove/reorder — never on every
+  // keystroke, so typing never loses focus).
+  function renderItemList(containerId, list, fieldsDef, periodField, onChange) {
+    var wrap = document.getElementById(containerId);
+    if (!wrap) return;
+    wrap.innerHTML = "";
+
+    if (list.length === 0) {
+      var empty = document.createElement("p");
+      empty.className = "collection-empty";
+      empty.textContent = "Nenhum item ainda. Clique em “+ Adicionar novo” abaixo para criar o primeiro.";
+      wrap.appendChild(empty);
+      return;
+    }
+
+    list.forEach(function (item, index) {
+      var itemCard = document.createElement("div");
+      itemCard.className = "item-card";
+
+      var itemHead = document.createElement("div");
+      itemHead.className = "item-head";
+
+      var itemLabel = document.createElement("span");
+      itemLabel.className = "item-label";
+      itemLabel.textContent = "Item #" + (index + 1);
+      itemHead.appendChild(itemLabel);
+
+      var btnRow = document.createElement("div");
+      btnRow.className = "item-btn-row";
+
+      if (index > 0) {
+        var upBtn = document.createElement("button");
+        upBtn.type = "button";
+        upBtn.className = "btn-move";
+        upBtn.textContent = "▲ Subir";
+        upBtn.addEventListener("click", function () {
+          var tmp = list[index - 1];
+          list[index - 1] = list[index];
+          list[index] = tmp;
+          onChange();
+        });
+        btnRow.appendChild(upBtn);
+      }
+      if (index < list.length - 1) {
+        var downBtn = document.createElement("button");
+        downBtn.type = "button";
+        downBtn.className = "btn-move";
+        downBtn.textContent = "▼ Descer";
+        downBtn.addEventListener("click", function () {
+          var tmp = list[index + 1];
+          list[index + 1] = list[index];
+          list[index] = tmp;
+          onChange();
+        });
+        btnRow.appendChild(downBtn);
+      }
+
+      var removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.className = "btn-remove";
+      removeBtn.textContent = "Remover";
+      removeBtn.addEventListener("click", function () {
+        if (!window.confirm("Remover este item da lista? Isso só é definitivo depois de clicar em “Salvar alterações”.")) return;
+        list.splice(index, 1);
+        onChange();
+      });
+      btnRow.appendChild(removeBtn);
+
+      itemHead.appendChild(btnRow);
+      itemCard.appendChild(itemHead);
+
+      // Period-like field (untranslated, single value: period / year / date)
+      var pf = periodField;
+      var pField = document.createElement("div");
+      pField.className = "field";
+      var pLabel = document.createElement("label");
+      pLabel.textContent = pf.label;
+      pField.appendChild(pLabel);
+      var pInput = document.createElement("input");
+      pInput.type = "text";
+      pInput.value = item[pf.name] || "";
+      pInput.addEventListener("input", function (e) { item[pf.name] = e.target.value; });
+      pField.appendChild(pInput);
+      itemCard.appendChild(pField);
+
+      fieldsDef.forEach(function (f) {
+        var field = document.createElement("div");
+        field.className = "field";
+        var label = document.createElement("label");
+        label.textContent = f.label;
+        field.appendChild(label);
+
+        if (!f.translated) {
+          var input = document.createElement("input");
+          input.type = "text";
+          input.value = item[f.name] || "";
+          input.addEventListener("input", function (e) { item[f.name] = e.target.value; });
+          field.appendChild(input);
+        } else {
+          if (!item[f.name] || typeof item[f.name] !== "object") {
+            item[f.name] = { en: "", pt: "", es: "" };
+          }
+          LANGS.forEach(function (lang) {
+            var row = document.createElement("div");
+            row.className = "lang-row";
+            var tag = document.createElement("div");
+            tag.className = "lang-tag";
+            tag.textContent = lang.tag;
+            row.appendChild(tag);
+
+            var input;
+            if (f.type === "taglist") {
+              input = document.createElement("input");
+              input.type = "text";
+              var arr = Array.isArray(item[f.name][lang.code]) ? item[f.name][lang.code] : [];
+              input.value = arr.join(", ");
+              input.placeholder = "Ex.: Eletroporação, Oncologia";
+              input.addEventListener("input", function (e) {
+                item[f.name][lang.code] = e.target.value
+                  .split(",")
+                  .map(function (s) { return s.trim(); })
+                  .filter(Boolean);
+              });
+            } else {
+              input = document.createElement(f.type === "textarea" ? "textarea" : "input");
+              if (f.type !== "textarea") input.type = "text";
+              input.value = item[f.name][lang.code] || "";
+              input.addEventListener("input", function (e) { item[f.name][lang.code] = e.target.value; });
+            }
+            row.appendChild(input);
+            field.appendChild(row);
+          });
+        }
+
+        itemCard.appendChild(field);
+      });
+
+      wrap.appendChild(itemCard);
+    });
+  }
+
+  function renderCollectionItems(colDef) {
+    var list = collectionsData[colDef.key] || (collectionsData[colDef.key] = []);
+    renderItemList("collection-items-" + colDef.key, list, colDef.fields, colDef.periodField, function () {
+      renderCollectionItems(colDef);
+    });
+  }
+
+  // ---------------------------------------------------------
+  // Fully custom sections ("tópicos"): Maria can create whole new
+  // sections from scratch — her own title, optional lead text, and
+  // her own list of items (same shape as a project card: period,
+  // title, subtitle, description, tags, link). A section only shows
+  // up on the site once it has at least one item, and isn't added to
+  // the top nav menu (the list can grow to any length).
+  // ---------------------------------------------------------
+  var CUSTOM_ITEM_FIELDS = [
+    { name: "title", label: "Título", translated: true, type: "textarea" },
+    { name: "subtitle", label: "Subtítulo (opcional)", translated: true, type: "text" },
+    { name: "desc", label: "Descrição", translated: true, type: "textarea" },
+    { name: "tags", label: "Tags (separe por vírgula, opcional)", translated: true, type: "taglist" },
+    { name: "link", label: "Link (opcional)", translated: false, type: "text" }
+  ];
+  var CUSTOM_PERIOD_FIELD = { name: "period", label: "Ano / Período (opcional)" };
+
+  var customSectionsData = [];
+  var customSectionsRoot = document.getElementById("custom-sections-root");
+
+  function blankCustomSection() {
+    return {
+      title: { en: "", pt: "", es: "" },
+      lead: { en: "", pt: "", es: "" },
+      items: []
+    };
+  }
+
+  function blankCustomItem() {
+    return {
+      period: "",
+      title: { en: "", pt: "", es: "" },
+      subtitle: { en: "", pt: "", es: "" },
+      desc: { en: "", pt: "", es: "" },
+      tags: { en: [], pt: [], es: [] },
+      link: ""
+    };
+  }
+
+  function buildCustomSectionsUI() {
+    customSectionsRoot.innerHTML = "";
+
+    var header = document.createElement("div");
+    header.className = "section-card";
+    var h3 = document.createElement("h3");
+    h3.textContent = "Seções personalizadas (novos tópicos)";
+    header.appendChild(h3);
+    var hint = document.createElement("p");
+    hint.className = "collection-hint";
+    hint.textContent = "Crie seções totalmente novas — por exemplo “Voluntariado”, “Prêmios”, “Habilidades”, o que fizer sentido. Cada seção só aparece no site depois de ter pelo menos 1 item, e aparece no final da página (depois de Formação). Elas não entram no menu do topo.";
+    header.appendChild(hint);
+    var addSectionBtn = document.createElement("button");
+    addSectionBtn.type = "button";
+    addSectionBtn.className = "btn-add";
+    addSectionBtn.textContent = "+ Criar nova seção";
+    addSectionBtn.addEventListener("click", function () {
+      customSectionsData.push(blankCustomSection());
+      renderCustomSectionsList();
+    });
+    header.appendChild(addSectionBtn);
+    customSectionsRoot.appendChild(header);
+
+    var listWrap = document.createElement("div");
+    listWrap.id = "custom-sections-list";
+    customSectionsRoot.appendChild(listWrap);
+
+    renderCustomSectionsList();
+  }
+
+  function renderCustomSectionsList() {
+    var wrap = document.getElementById("custom-sections-list");
+    if (!wrap) return;
+    wrap.innerHTML = "";
+
+    if (customSectionsData.length === 0) {
+      var card = document.createElement("div");
+      card.className = "section-card";
+      var p = document.createElement("p");
+      p.className = "collection-empty";
+      p.textContent = "Nenhuma seção personalizada ainda.";
+      card.appendChild(p);
+      wrap.appendChild(card);
+      return;
+    }
+
+    customSectionsData.forEach(function (section, sIndex) {
+      var card = document.createElement("div");
+      card.className = "section-card";
+
+      var head = document.createElement("div");
+      head.className = "item-head";
+      var label = document.createElement("span");
+      label.className = "item-label";
+      label.textContent = "Seção #" + (sIndex + 1);
+      head.appendChild(label);
+
+      var btnRow = document.createElement("div");
+      btnRow.className = "item-btn-row";
+      if (sIndex > 0) {
+        var up = document.createElement("button");
+        up.type = "button"; up.className = "btn-move"; up.textContent = "▲ Subir seção";
+        up.addEventListener("click", function () {
+          var tmp = customSectionsData[sIndex - 1];
+          customSectionsData[sIndex - 1] = customSectionsData[sIndex];
+          customSectionsData[sIndex] = tmp;
+          renderCustomSectionsList();
+        });
+        btnRow.appendChild(up);
+      }
+      if (sIndex < customSectionsData.length - 1) {
+        var down = document.createElement("button");
+        down.type = "button"; down.className = "btn-move"; down.textContent = "▼ Descer seção";
+        down.addEventListener("click", function () {
+          var tmp = customSectionsData[sIndex + 1];
+          customSectionsData[sIndex + 1] = customSectionsData[sIndex];
+          customSectionsData[sIndex] = tmp;
+          renderCustomSectionsList();
+        });
+        btnRow.appendChild(down);
+      }
+      var removeSection = document.createElement("button");
+      removeSection.type = "button"; removeSection.className = "btn-remove"; removeSection.textContent = "Remover seção inteira";
+      removeSection.addEventListener("click", function () {
+        if (!window.confirm("Remover esta seção inteira e todos os itens dela? Isso só é definitivo depois de clicar em \"Salvar alterações\".")) return;
+        customSectionsData.splice(sIndex, 1);
+        renderCustomSectionsList();
+      });
+      btnRow.appendChild(removeSection);
+      head.appendChild(btnRow);
+      card.appendChild(head);
+
+      // Section title (translated, single line)
+      var titleField = document.createElement("div");
+      titleField.className = "field";
+      var titleLabel = document.createElement("label");
+      titleLabel.textContent = "Título da seção";
+      titleField.appendChild(titleLabel);
+      if (!section.title) section.title = { en: "", pt: "", es: "" };
+      LANGS.forEach(function (lang) {
+        var row = document.createElement("div");
+        row.className = "lang-row";
+        var tag = document.createElement("div");
+        tag.className = "lang-tag";
+        tag.textContent = lang.tag;
+        row.appendChild(tag);
+        var input = document.createElement("input");
+        input.type = "text";
+        input.value = section.title[lang.code] || "";
+        input.addEventListener("input", function (e) { section.title[lang.code] = e.target.value; });
+        row.appendChild(input);
+        titleField.appendChild(row);
+      });
+      card.appendChild(titleField);
+
+      // Section lead text (translated, textarea, optional)
+      var leadField = document.createElement("div");
+      leadField.className = "field";
+      var leadLabel = document.createElement("label");
+      leadLabel.textContent = "Texto de apoio (opcional)";
+      leadField.appendChild(leadLabel);
+      if (!section.lead) section.lead = { en: "", pt: "", es: "" };
+      LANGS.forEach(function (lang) {
+        var row = document.createElement("div");
+        row.className = "lang-row";
+        var tag = document.createElement("div");
+        tag.className = "lang-tag";
+        tag.textContent = lang.tag;
+        row.appendChild(tag);
+        var input = document.createElement("textarea");
+        input.value = section.lead[lang.code] || "";
+        input.addEventListener("input", function (e) { section.lead[lang.code] = e.target.value; });
+        row.appendChild(input);
+        leadField.appendChild(row);
+      });
+      card.appendChild(leadField);
+
+      // Items inside this custom section.
+      var itemsHeading = document.createElement("p");
+      itemsHeading.className = "collection-hint";
+      itemsHeading.style.marginTop = "1.25rem";
+      itemsHeading.textContent = "Itens desta seção:";
+      card.appendChild(itemsHeading);
+
+      var itemsWrap = document.createElement("div");
+      itemsWrap.id = "custom-section-items-" + sIndex;
+      card.appendChild(itemsWrap);
+
+      var addItemBtn = document.createElement("button");
+      addItemBtn.type = "button";
+      addItemBtn.className = "btn-add";
+      addItemBtn.textContent = "+ Adicionar item nesta seção";
+      addItemBtn.addEventListener("click", function () {
+        if (!section.items) section.items = [];
+        section.items.push(blankCustomItem());
+        renderCustomSectionItems(section, sIndex);
+      });
+      card.appendChild(addItemBtn);
+
+      wrap.appendChild(card);
+      renderCustomSectionItems(section, sIndex);
+    });
+  }
+
+  function renderCustomSectionItems(section, sIndex) {
+    var list = section.items || (section.items = []);
+    renderItemList("custom-section-items-" + sIndex, list, CUSTOM_ITEM_FIELDS, CUSTOM_PERIOD_FIELD, function () {
+      renderCustomSectionItems(section, sIndex);
+    });
+  }
+
+  // ---------------------------------------------------------
+  // Profile photo: resized/compressed to a JPEG in the browser (so
+  // uploads stay small and always land as photo.jpg regardless of the
+  // original file type), then committed via its own endpoint — separate
+  // from "Salvar alterações" since it's a different kind of save.
+  // ---------------------------------------------------------
+  var MAX_PHOTO_DIMENSION = 900;
+  var PHOTO_JPEG_QUALITY = 0.85;
+
+  function buildPhotoCard() {
+    photoCardRoot.innerHTML = "";
+
+    var card = document.createElement("div");
+    card.className = "section-card";
+
+    var h3 = document.createElement("h3");
+    h3.textContent = "Foto de perfil";
+    card.appendChild(h3);
+
+    var hint = document.createElement("p");
+    hint.className = "collection-hint";
+    hint.textContent = "Aparece no topo do site. Formatos aceitos: JPG, PNG ou WEBP — a imagem é redimensionada automaticamente.";
+    card.appendChild(hint);
+
+    var row = document.createElement("div");
+    row.style.display = "flex";
+    row.style.alignItems = "center";
+    row.style.gap = "1rem";
+    row.style.marginBottom = "1rem";
+    row.style.flexWrap = "wrap";
+
+    var preview = document.createElement("img");
+    preview.id = "photo-preview";
+    preview.src = "/photo.jpg?t=" + Date.now();
+    preview.alt = "Foto atual";
+    preview.style.width = "6rem";
+    preview.style.height = "6rem";
+    preview.style.borderRadius = "12px";
+    preview.style.objectFit = "cover";
+    preview.style.border = "1px solid var(--border)";
+    preview.style.background = "var(--surface)";
+    row.appendChild(preview);
+
+    var fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.id = "photo-input";
+    fileInput.accept = "image/*";
+    row.appendChild(fileInput);
+
+    card.appendChild(row);
+
+    var saveBtn = document.createElement("button");
+    saveBtn.type = "button";
+    saveBtn.className = "btn-primary";
+    saveBtn.style.width = "auto";
+    saveBtn.style.marginTop = "0";
+    saveBtn.textContent = "Salvar nova foto";
+    card.appendChild(saveBtn);
+
+    var photoStatus = document.createElement("div");
+    photoStatus.id = "photo-status";
+    photoStatus.style.marginTop = ".6rem";
+    photoStatus.style.fontSize = ".88rem";
+    card.appendChild(photoStatus);
+
+    photoCardRoot.appendChild(card);
+
+    fileInput.addEventListener("change", function (e) {
+      var file = e.target.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function (ev) {
+        preview.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    saveBtn.addEventListener("click", function () {
+      var file = fileInput.files[0];
+      if (!file) {
+        photoStatus.textContent = "Escolha uma foto primeiro.";
+        photoStatus.className = "err";
+        return;
+      }
+      var token = getToken();
+      if (!token) { showLogin("Sua sessão expirou. Entre novamente."); return; }
+
+      photoStatus.textContent = "Preparando imagem…";
+      photoStatus.className = "";
+
+      var reader = new FileReader();
+      reader.onload = function (ev) {
+        var img = new Image();
+        img.onload = function () {
+          var scale = Math.min(1, MAX_PHOTO_DIMENSION / Math.max(img.width, img.height));
+          var canvas = document.createElement("canvas");
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          var ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          var dataUrl = canvas.toDataURL("image/jpeg", PHOTO_JPEG_QUALITY);
+
+          photoStatus.textContent = "Salvando foto…";
+          fetch("/api/save-photo", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: token, imageBase64: dataUrl })
+          })
+            .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
+            .then(function (res) {
+              if (!res.ok) {
+                photoStatus.textContent = res.data.error || "Erro ao salvar a foto.";
+                photoStatus.className = "err";
+                if (res.data.error && res.data.error.indexOf("expirad") !== -1) clearToken();
+                return;
+              }
+              photoStatus.textContent = "Foto salva! O site atualiza em cerca de 1 minuto.";
+              photoStatus.className = "ok";
+            })
+            .catch(function () {
+              photoStatus.textContent = "Erro de conexão. Tenta salvar de novo.";
+              photoStatus.className = "err";
+            });
+        };
+        img.onerror = function () {
+          photoStatus.textContent = "Não consegui ler essa imagem. Tenta outro arquivo.";
+          photoStatus.className = "err";
+        };
+        img.src = ev.target.result;
+      };
+      reader.onerror = function () {
+        photoStatus.textContent = "Não consegui ler o arquivo.";
+        photoStatus.className = "err";
+      };
+      reader.readAsDataURL(file);
     });
   }
 
@@ -276,19 +964,38 @@
         out[lang.code][key] = fieldRefs[key][lang.code].value;
       });
     });
+    out.collections = collectionsData;
+    out.collections.custom_sections = customSectionsData;
     return out;
   }
 
   function loadEditor() {
     showEditor();
     editorLoading.style.display = "block";
+    photoCardRoot.style.display = "none";
     sectionsEl.style.display = "none";
+    collectionsRoot.style.display = "none";
+    customSectionsRoot.style.display = "none";
     fetch("/content.json", { cache: "no-store" })
       .then(function (r) { return r.json(); })
       .then(function (content) {
+        buildPhotoCard();
         buildForm(content);
+        collectionsData = content.collections && typeof content.collections === "object"
+          ? content.collections
+          : { projects: [], publications: [], certificates: [], education: [], custom_sections: [] };
+        if (!Array.isArray(collectionsData.projects)) collectionsData.projects = [];
+        if (!Array.isArray(collectionsData.publications)) collectionsData.publications = [];
+        if (!Array.isArray(collectionsData.certificates)) collectionsData.certificates = [];
+        if (!Array.isArray(collectionsData.education)) collectionsData.education = [];
+        customSectionsData = Array.isArray(collectionsData.custom_sections) ? collectionsData.custom_sections : [];
+        buildCollectionsUI();
+        buildCustomSectionsUI();
         editorLoading.style.display = "none";
+        photoCardRoot.style.display = "block";
         sectionsEl.style.display = "block";
+        collectionsRoot.style.display = "block";
+        customSectionsRoot.style.display = "block";
       })
       .catch(function () {
         editorLoading.textContent = "Não consegui carregar o conteúdo atual. Recarregue a página.";

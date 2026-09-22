@@ -196,6 +196,7 @@ ul { padding: 0; list-style: none; }
 
 /* Sections */
 .section { padding-block: 2.75rem; }
+.section[hidden] { display: none; } /* publications/certificates before any items exist */
 .section-alt { background: var(--surface); border-block: 1px solid var(--border); }
 .section-title {
   position: relative;

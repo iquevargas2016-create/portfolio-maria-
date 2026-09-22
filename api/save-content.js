@@ -26,6 +26,99 @@ function verifyToken(token, secret) {
 
 const LANGS = ["en", "pt", "es"];
 
+// Repeatable content Maria can add to over time via the admin panel —
+// each item mixes plain fields (period/year/date, link) with fields
+// translated per language (title, subtitle/venue/issuer, desc, tags).
+const COLLECTION_KEYS = ["projects", "publications", "certificates", "education"];
+const TRANSLATED_ITEM_FIELDS = ["title", "subtitle", "desc", "venue", "issuer"];
+const STRING_ITEM_FIELDS = ["period", "year", "date", "link"];
+
+function isPlainObject(v) {
+  return !!v && typeof v === "object" && !Array.isArray(v);
+}
+
+function validateTranslatedField(value, label) {
+  if (value == null) return null; // optional field
+  if (!isPlainObject(value)) return `O campo "${label}" deve ser um objeto com texto por idioma (en/pt/es).`;
+  for (const lang of LANGS) {
+    if (value[lang] != null && typeof value[lang] !== "string") {
+      return `O campo "${label}" (${lang}) deve ser texto.`;
+    }
+  }
+  return null;
+}
+
+function validateTagsField(value, label) {
+  if (value == null) return null; // optional field
+  if (!isPlainObject(value)) return `O campo "${label}" deve ser um objeto com uma lista por idioma.`;
+  for (const lang of LANGS) {
+    if (value[lang] == null) continue;
+    if (!Array.isArray(value[lang])) return `O campo "${label}" (${lang}) deve ser uma lista.`;
+    for (const t of value[lang]) {
+      if (typeof t !== "string") return `O campo "${label}" (${lang}) tem um valor inválido.`;
+    }
+  }
+  return null;
+}
+
+function validateCollectionItem(item, label) {
+  if (!isPlainObject(item)) return `O item "${label}" é inválido.`;
+  for (const f of TRANSLATED_ITEM_FIELDS) {
+    const err = validateTranslatedField(item[f], `${label}.${f}`);
+    if (err) return err;
+  }
+  const tagsErr = validateTagsField(item.tags, `${label}.tags`);
+  if (tagsErr) return tagsErr;
+  for (const f of STRING_ITEM_FIELDS) {
+    if (item[f] != null && typeof item[f] !== "string") {
+      return `O campo "${label}.${f}" deve ser texto.`;
+    }
+  }
+  return null;
+}
+
+// Fully custom "topics" Maria can create herself — each is its own
+// section with a title/lead (translated) plus a repeatable list of
+// items in the same shape as projects/publications/certificates.
+function validateCustomSections(sections) {
+  if (sections == null) return null; // optional, treated as an empty list
+  if (!Array.isArray(sections)) return '"collections.custom_sections" deve ser uma lista.';
+  for (let i = 0; i < sections.length; i++) {
+    const section = sections[i];
+    const label = `custom_sections[${i + 1}]`;
+    if (!isPlainObject(section)) return `A seção ${i + 1} é inválida.`;
+
+    const titleErr = validateTranslatedField(section.title, `${label}.title`);
+    if (titleErr) return titleErr;
+    const leadErr = validateTranslatedField(section.lead, `${label}.lead`);
+    if (leadErr) return leadErr;
+
+    if (section.items != null) {
+      if (!Array.isArray(section.items)) return `"${label}.items" deve ser uma lista.`;
+      for (let j = 0; j < section.items.length; j++) {
+        const err = validateCollectionItem(section.items[j], `${label}.items[${j + 1}]`);
+        if (err) return err;
+      }
+    }
+  }
+  return null;
+}
+
+function validateCollections(collections) {
+  if (collections == null) return null; // absent is fine — defaults apply elsewhere
+  if (!isPlainObject(collections)) return 'O campo "collections" é inválido.';
+  for (const key of COLLECTION_KEYS) {
+    if (!(key in collections)) continue; // optional, treated as an empty list
+    const arr = collections[key];
+    if (!Array.isArray(arr)) return `"collections.${key}" deve ser uma lista.`;
+    for (let i = 0; i < arr.length; i++) {
+      const err = validateCollectionItem(arr[i], `${key}[${i + 1}]`);
+      if (err) return err;
+    }
+  }
+  return validateCustomSections(collections.custom_sections);
+}
+
 function validateContent(content) {
   if (!content || typeof content !== "object") return "Invalid content payload.";
   for (const lang of LANGS) {
@@ -44,7 +137,7 @@ function validateContent(content) {
       }
     }
   }
-  return null;
+  return validateCollections(content.collections);
 }
 
 module.exports = async (req, res) => {
