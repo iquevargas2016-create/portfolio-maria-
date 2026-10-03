@@ -48,6 +48,8 @@
         const response = await fetch('/api/contact', { cache: 'no-store' });
         const config = await response.json();
         if (!response.ok || !config.configured) { say(u.unavailable); retry.hidden = false; return; }
+        const privacy = document.getElementById('contact-privacy');
+        if (privacy) privacy.textContent = config.inboxEnabled ? u.inboxHint : u.contactHint;
         if (!window.turnstile) await new Promise((resolve, reject) => {
           const script = document.createElement('script'); script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'; script.async = true;
           const timeout = setTimeout(() => { script.remove(); reject(new Error('timeout')); }, 15000);

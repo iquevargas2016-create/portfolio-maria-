@@ -16,7 +16,7 @@
       saved: 'Salvar contato', card: 'Cartão profissional', cardLead: 'Meu perfil, currículo e contato em um só lugar.',
       start: 'Envie uma mensagem', research: 'Colaboração científica', academic: 'Oportunidade acadêmica', professional: 'Contato profissional',
       name: 'Seu nome', organization: 'Instituição (opcional)', message: 'Mensagem', compose: 'Enviar mensagem',
-      contactHint: 'Seus dados serão usados para responder à sua mensagem.',
+      inboxHint: 'Seus dados serão usados para responder à sua mensagem e mantidos no painel privado por até 90 dias.', contactHint: 'Seus dados serão usados para responder à sua mensagem.',
       greeting: 'Olá, Maria!', from: 'Nome', org: 'Instituição', copiedLink: 'Link copiado.',
       offline: 'Você está offline. As páginas salvas continuam disponíveis.',
       online: 'Conexão restabelecida.', install: 'Salvar no dispositivo', updated: 'Novo conteúdo disponível. Recarregue para atualizar.',
@@ -28,7 +28,7 @@
       saved: 'Save contact', card: 'Professional card', cardLead: 'My profile, CV and contact details in one place.',
       start: 'Send a message', research: 'Research collaboration', academic: 'Academic opportunity', professional: 'Professional connection',
       name: 'Your name', organization: 'Institution (optional)', message: 'Message', compose: 'Send message',
-      contactHint: 'Your details will be used to reply to your message.', greeting: 'Hello, Maria!', from: 'Name', org: 'Institution',
+      inboxHint: 'Your details will be used to reply to your message and kept in the private dashboard for up to 90 days.', contactHint: 'Your details will be used to reply to your message.', greeting: 'Hello, Maria!', from: 'Name', org: 'Institution',
       copiedLink: 'Link copied.', offline: 'You are offline. Saved pages are still available.', online: 'You are back online.',
       install: 'Save to device', updated: 'New content available. Reload to update.', areas: 'Topics', profile: 'Profile', external: 'Open reference', preview: 'Draft preview', noProject: 'Research not found.'
     },
@@ -38,7 +38,7 @@
       saved: 'Guardar contacto', card: 'Tarjeta profesional', cardLead: 'Mi perfil, currículum y contacto en un solo lugar.',
       start: 'Envía un mensaje', research: 'Colaboración científica', academic: 'Oportunidad académica', professional: 'Contacto profesional',
       name: 'Tu nombre', organization: 'Institución (opcional)', message: 'Mensaje', compose: 'Enviar mensaje',
-      contactHint: 'Tus datos se utilizarán para responder a tu mensaje.', greeting: '¡Hola, Maria!', from: 'Nombre', org: 'Institución',
+      inboxHint: 'Tus datos se utilizarán para responder a tu mensaje y se conservarán en el panel privado hasta 90 días.', contactHint: 'Tus datos se utilizarán para responder a tu mensaje.', greeting: '¡Hola, Maria!', from: 'Nombre', org: 'Institución',
       copiedLink: 'Enlace copiado.', offline: 'Sin conexión. Las páginas guardadas siguen disponibles.', online: 'Conexión restablecida.',
       install: 'Guardar en el dispositivo', updated: 'Hay contenido nuevo. Recarga para actualizar.', areas: 'Temas', profile: 'Perfil', external: 'Abrir referencia', preview: 'Vista previa del borrador', noProject: 'Investigación no encontrada.'
     }
@@ -130,7 +130,7 @@
       <details class="contact-composer"><summary>${u.start}</summary><form id="contact-form" data-email="${escape(email)}">
       <fieldset><legend>${u.topic}</legend><div class="intent-options">${['research', 'academic', 'professional'].map((id, i) => `<label><input type="radio" name="intent" value="${id}" ${i === 0 ? 'checked' : ''}> ${u[id]}</label>`).join('')}</div></fieldset>
       <div class="form-grid"><label>${u.name}<input name="name" autocomplete="name" required maxlength="100"></label><label>${u.organization}<input name="organization" autocomplete="organization" maxlength="150"></label></div>
-      <label>${u.replyEmail}<input name="email" type="email" autocomplete="email" required maxlength="254"></label><div class="contact-trap" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div><label data-contact-context>${u.subject}<input name="context" maxlength="180"></label><label>${u.deadline}<input name="deadline" type="date"></label><label>${u.message}<textarea name="message" rows="4" maxlength="1800" required></textarea></label><p class="hint">${u.contactHint}</p><div id="contact-verification"></div><p id="contact-status" class="hint" role="status" aria-live="polite">${u.loading}</p><button class="button button-solid" type="submit" disabled>${u.compose}</button><button class="button button-outline" type="button" id="contact-retry" hidden>${u.retry}</button></form></details>
+      <label>${u.replyEmail}<input name="email" type="email" autocomplete="email" required maxlength="254"></label><div class="contact-trap" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div><label data-contact-context>${u.subject}<input name="context" maxlength="180"></label><label>${u.deadline}<input name="deadline" type="date"></label><label>${u.message}<textarea name="message" rows="4" maxlength="1800" required></textarea></label><p class="hint" id="contact-privacy">${u.contactHint}</p><div id="contact-verification"></div><p id="contact-status" class="hint" role="status" aria-live="polite">${u.loading}</p><button class="button button-solid" type="submit" disabled>${u.compose}</button><button class="button button-outline" type="button" id="contact-retry" hidden>${u.retry}</button></form></details>
     </div></section>`;
   }
   function helper(content, lang, preview) {

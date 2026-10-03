@@ -14,7 +14,7 @@ function config() {
 
 module.exports = endpoint(async (req, res) => {
   const settings = config();
-  if (req.method === 'GET') return res.status(200).json({ configured: !!settings, ...(settings ? { siteKey: settings.siteKey } : {}) });
+  if (req.method === 'GET') return res.status(200).json({ configured: !!settings, ...(settings ? { siteKey: settings.siteKey, inboxEnabled: process.env.VERCEL_ENV === 'production' && !!require('../lib/inbox').config() } : {}) });
   if (!settings) throw error(503, 'Envio indisponível.');
   // Browser requests must come from this deployment; challenge hostname is checked too.
   let hostname;
