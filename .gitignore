@@ -1,3 +1,4 @@
 .vercel
 .env*
 .build.swp
+node_modules

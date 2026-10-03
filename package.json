@@ -1,0 +1,8 @@
+{
+  "name": "portfolio-maria",
+  "private": true,
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0",
+    "openai": "^7.27.0"
+  }
+}
