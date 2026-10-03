@@ -198,9 +198,9 @@
   }
   async function loadOpportunities() {
     const board = $('#opportunity-board');
-    const storageKey = 'maria-opportunities-local-v1';
+    const storageKey = `maria-opportunities-local-v1${demo ? '-demo' : ''}`;
     let remote = false, items = [];
-    try { const result = await api('/api/opportunities'); remote = result.configured; if (remote) items = result.items; }
+    try { const result = demo ? { configured: false } : await api('/api/opportunities'); remote = result.configured; if (remote) items = result.items; }
     catch { board.textContent = 'Não foi possível carregar a caixa privada. Tente novamente.'; return; }
     if (state.tab !== 'opportunities') return;
     if (!remote) { try { items = JSON.parse(localStorage.getItem(storageKey) || '[]'); if (!Array.isArray(items)) items = []; } catch { items = []; } }

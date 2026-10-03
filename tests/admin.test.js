@@ -114,3 +114,9 @@ test('fixed labels cannot be selected and education can only be added, completed
   assert.match(d.querySelector('#panel').textContent,/Nova formação/);
   page.window.close();dom.window.close();
 });
+
+test('demo opportunities never request private APIs or return to login',async()=>{
+ const {dom,d,requests}=await admin();
+ for(let i=0;i<2;i++){d.querySelector('[data-tab="opportunities"]').click();await settle();assert.equal(d.querySelector('#app').hidden,false);assert.equal(d.querySelector('#login').hidden,true);assert.ok(d.querySelector('#op-add'));d.querySelector('[data-tab="visual"]').click();}
+ assert.ok(requests.every(url=>!url.startsWith('/api/')));dom.window.close();
+});
