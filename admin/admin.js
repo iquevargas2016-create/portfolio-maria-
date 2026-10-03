@@ -108,7 +108,7 @@
     const [type, slug] = state.previewType.split(':');
     const content = state.previewSource === 'draft' ? state.content : state.published;
     const inlineScript = source => source.replace(/<\/script/gi, '<\\/script');
-    $('#preview-frame').srcdoc = V.renderPage(content, { lang: state.previewLang, type, slug, preview: true, photo: (state.previewSource === 'draft' && state.photo) || previewAssets.photo })
+    $('#preview-frame').srcdoc = V.renderPage(content, { lang: state.previewLang, type, slug, preview: true, contactDemo: true, photo: (state.previewSource === 'draft' && state.photo) || previewAssets.photo })
       .replace('<head>', `<head><base href="${esc(location.origin)}/">`)
       .replace('<link rel="stylesheet" href="/styles.css">', () => `<style>${previewAssets.css}</style>`)
       .replace('<script src="/shared/view.js" defer></script>', () => `<script>${inlineScript(previewAssets.view)}</script>`)
@@ -122,7 +122,7 @@
   }
   async function loadMetrics() {
     if (demo) { $('#metrics-state').textContent = 'A demonstração não mostra números inventados. Entre no painel para consultar a disponibilidade dos contadores.'; return; }
-    try { const data = await api('/api/analytics'); if (state.tab !== 'analytics') return; if (!data.configured) { $('#metrics-state').textContent = 'Contadores internos não configurados. Use o painel da Vercel acima; nenhum serviço de armazenamento foi contratado.'; return; } $('#metrics-state').textContent = 'Ações registradas desde a ativação, nos últimos 30 dias. Não representam pessoas únicas.'; const names = { research_open: 'Pesquisas abertas', cv_open: 'Currículos abertos', cv_print: 'Impressões de currículo', email_click: 'Cliques em email', phone_click: 'Cliques em telefone', contact_compose: 'Emails preparados', contact_save: 'Contatos salvos', share: 'Compartilhamentos', email_copy: 'Emails copiados' }; $('#metrics').innerHTML = Object.entries(names).map(([k, label]) => `<div class="metric"><strong>${Number(data.counts[k] || 0)}</strong>${label}</div>`).join(''); }
+    try { const data = await api('/api/analytics'); if (state.tab !== 'analytics') return; if (!data.configured) { $('#metrics-state').textContent = 'Contadores internos não configurados. Use o painel da Vercel acima; nenhum serviço de armazenamento foi contratado.'; return; } $('#metrics-state').textContent = 'Ações registradas desde a ativação, nos últimos 30 dias. Não representam pessoas únicas.'; const names = { research_open: 'Pesquisas abertas', cv_open: 'Currículos abertos', cv_print: 'Impressões de currículo', email_click: 'Cliques em email', phone_click: 'Cliques em telefone', contact_compose: 'Emails preparados (anterior)', contact_sent: 'Mensagens enviadas', contact_save: 'Contatos salvos', share: 'Compartilhamentos', email_copy: 'Emails copiados' }; $('#metrics').innerHTML = Object.entries(names).map(([k, label]) => `<div class="metric"><strong>${Number(data.counts[k] || 0)}</strong>${label}</div>`).join(''); }
     catch (err) { if ($('#metrics-state')) $('#metrics-state').textContent = err.message; }
   }
   async function start(data) {

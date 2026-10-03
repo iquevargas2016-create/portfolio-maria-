@@ -14,9 +14,9 @@
       back: 'Voltar ao perfil', details: 'Conhecer a pesquisa', overview: 'Sobre a pesquisa',
       share: 'Compartilhar', copy: 'Copiar email', copied: 'Copiado.', failed: 'Não foi possível copiar. Selecione o texto para copiar.',
       saved: 'Salvar contato', card: 'Cartão profissional', cardLead: 'Meu perfil, currículo e contato em um só lugar.',
-      start: 'Qual é o assunto?', research: 'Colaboração científica', academic: 'Oportunidade acadêmica', professional: 'Contato profissional',
-      name: 'Seu nome', organization: 'Instituição (opcional)', message: 'Mensagem', compose: 'Preparar email',
-      contactHint: 'Seu aplicativo de email será aberto com a mensagem pronta para você revisar e enviar.',
+      start: 'Vamos conversar sobre uma oportunidade?', research: 'Colaboração científica', academic: 'Oportunidade acadêmica', professional: 'Contato profissional',
+      name: 'Seu nome', organization: 'Instituição (opcional)', message: 'Mensagem', compose: 'Enviar mensagem',
+      contactHint: 'Seu nome, email e mensagem serão usados para responder ao contato. O envio usa Resend e a proteção contra spam usa Cloudflare Turnstile.',
       greeting: 'Olá, Maria!', from: 'Nome', org: 'Instituição', copiedLink: 'Link copiado.',
       offline: 'Você está offline. As páginas salvas continuam disponíveis.',
       online: 'Conexão restabelecida.', install: 'Salvar no dispositivo', updated: 'Novo conteúdo disponível. Recarregue para atualizar.',
@@ -26,9 +26,9 @@
       cv: 'CV', cvTitle: 'Academic CV', print: 'Print / save as PDF', back: 'Back to profile', details: 'Explore the research', overview: 'About the research',
       share: 'Share', copy: 'Copy email', copied: 'Copied.', failed: 'Could not copy. Select the text to copy it.',
       saved: 'Save contact', card: 'Professional card', cardLead: 'My profile, CV and contact details in one place.',
-      start: 'What would you like to discuss?', research: 'Research collaboration', academic: 'Academic opportunity', professional: 'Professional connection',
-      name: 'Your name', organization: 'Institution (optional)', message: 'Message', compose: 'Prepare email',
-      contactHint: 'Your email app will open with a draft for you to review and send.', greeting: 'Hello, Maria!', from: 'Name', org: 'Institution',
+      start: 'Let’s discuss an opportunity', research: 'Research collaboration', academic: 'Academic opportunity', professional: 'Professional connection',
+      name: 'Your name', organization: 'Institution (optional)', message: 'Message', compose: 'Send message',
+      contactHint: 'Your name, email and message will be used to reply to your enquiry. Delivery uses Resend; spam protection uses Cloudflare Turnstile.', greeting: 'Hello, Maria!', from: 'Name', org: 'Institution',
       copiedLink: 'Link copied.', offline: 'You are offline. Saved pages are still available.', online: 'You are back online.',
       install: 'Save to device', updated: 'New content available. Reload to update.', areas: 'Topics', profile: 'Profile', external: 'Open reference', preview: 'Draft preview', noProject: 'Research not found.'
     },
@@ -36,13 +36,19 @@
       cv: 'Currículum', cvTitle: 'Currículum académico', print: 'Imprimir / guardar como PDF', back: 'Volver al perfil', details: 'Conocer la investigación', overview: 'Sobre la investigación',
       share: 'Compartir', copy: 'Copiar email', copied: 'Copiado.', failed: 'No se pudo copiar. Selecciona el texto para copiarlo.',
       saved: 'Guardar contacto', card: 'Tarjeta profesional', cardLead: 'Mi perfil, currículum y contacto en un solo lugar.',
-      start: '¿Cuál es el asunto?', research: 'Colaboración científica', academic: 'Oportunidad académica', professional: 'Contacto profesional',
-      name: 'Tu nombre', organization: 'Institución (opcional)', message: 'Mensaje', compose: 'Preparar email',
-      contactHint: 'Se abrirá tu aplicación de email con el mensaje listo para revisar y enviar.', greeting: '¡Hola, Maria!', from: 'Nombre', org: 'Institución',
+      start: '¿Conversamos sobre una oportunidad?', research: 'Colaboración científica', academic: 'Oportunidad académica', professional: 'Contacto profesional',
+      name: 'Tu nombre', organization: 'Institución (opcional)', message: 'Mensaje', compose: 'Enviar mensaje',
+      contactHint: 'Tu nombre, email y mensaje se utilizarán para responder al contacto. El envío utiliza Resend y la protección antispam utiliza Cloudflare Turnstile.', greeting: '¡Hola, Maria!', from: 'Nombre', org: 'Institución',
       copiedLink: 'Enlace copiado.', offline: 'Sin conexión. Las páginas guardadas siguen disponibles.', online: 'Conexión restablecida.',
       install: 'Guardar en el dispositivo', updated: 'Hay contenido nuevo. Recarga para actualizar.', areas: 'Temas', profile: 'Perfil', external: 'Abrir referencia', preview: 'Vista previa del borrador', noProject: 'Investigación no encontrada.'
     }
   };
+  const CONTACT_UI = {
+    pt: { topic: 'Tipo de contato', replyEmail: 'Seu email', loading: 'Preparando o envio…', sending: 'Enviando…', sent: 'Mensagem enviada. Obrigada pelo contato!', unavailable: 'O envio pelo site ainda não está disponível. Você pode usar o email informado acima.', failed: 'Não foi possível confirmar o envio. Seu texto foi preservado; tente novamente.', verify: 'Conclua a verificação para enviar.', offlineSend: 'Conecte-se à internet para enviar. Seu texto continua aqui.', demoSend: 'Prévia de edição: o envio fica disponível na página do site após a configuração.', retry: 'Tentar carregar novamente', rate: 'Muitas tentativas. Aguarde alguns minutos antes de enviar novamente.' },
+    en: { topic: 'Type of enquiry', replyEmail: 'Your email', loading: 'Preparing the form…', sending: 'Sending…', sent: 'Message sent. Thank you for getting in touch!', unavailable: 'Sending from the website is not available yet. You can use the email address above.', failed: 'We could not confirm sending. Your text has been kept; please try again.', verify: 'Complete the verification to send.', offlineSend: 'Connect to the internet to send. Your text is still here.', demoSend: 'Editor preview: sending is available on the website once configured.', retry: 'Try loading again', rate: 'Too many attempts. Please wait a few minutes before trying again.' },
+    es: { topic: 'Tipo de contacto', replyEmail: 'Tu email', loading: 'Preparando el envío…', sending: 'Enviando…', sent: 'Mensaje enviado. ¡Gracias por contactarme!', unavailable: 'El envío desde el sitio aún no está disponible. Puedes usar el email indicado arriba.', failed: 'No pudimos confirmar el envío. Tu texto se ha conservado; vuelve a intentarlo.', verify: 'Completa la verificación para enviar.', offlineSend: 'Conéctate a internet para enviar. Tu texto sigue aquí.', demoSend: 'Vista previa de edición: el envío estará disponible en el sitio cuando esté configurado.', retry: 'Volver a cargar', rate: 'Demasiados intentos. Espera unos minutos antes de volver a enviar.' }
+  };
+  for (const lang of LANGS) Object.assign(UI[lang], CONTACT_UI[lang]);
   const LANGUAGE_NAMES = {
     pt: { pt: 'Português', en: 'Inglês', es: 'Espanhol', fr: 'Francês', it: 'Italiano', de: 'Alemão' },
     en: { pt: 'Portuguese', en: 'English', es: 'Spanish', fr: 'French', it: 'Italian', de: 'German' },
@@ -114,9 +120,9 @@
       <ul class="contact-grid"><li><a class="contact-card" href="mailto:${escape(email)}" data-event="email_click"><span class="contact-text"><span class="contact-label">${escape(d.contact_email_label)}</span><span class="contact-value">${escape(email)}</span></span></a></li><li><a class="contact-card" href="tel:${phoneNumber(d.contact_phone_value)}" data-event="phone_click"><span class="contact-text"><span class="contact-label">${escape(d.contact_phone_label)}</span><span class="contact-value">${escape(d.contact_phone_value)}</span></span></a></li><li><div class="contact-card"><span class="contact-text"><span class="contact-label">${escape(d.contact_location_label)}</span><span class="contact-value">${escape(d.contact_location_value)}</span></span></div></li></ul>
       ${actions(lang, email)}
       <details class="contact-composer"><summary>${u.start}</summary><form id="contact-form" data-email="${escape(email)}">
-      <fieldset><legend>${u.start}</legend><div class="intent-options">${['research', 'academic', 'professional'].map((id, i) => `<label><input type="radio" name="intent" value="${id}" ${i === 0 ? 'checked' : ''}> ${u[id]}</label>`).join('')}</div></fieldset>
+      <fieldset><legend>${u.topic}</legend><div class="intent-options">${['research', 'academic', 'professional'].map((id, i) => `<label><input type="radio" name="intent" value="${id}" ${i === 0 ? 'checked' : ''}> ${u[id]}</label>`).join('')}</div></fieldset>
       <div class="form-grid"><label>${u.name}<input name="name" autocomplete="name" required maxlength="100"></label><label>${u.organization}<input name="organization" autocomplete="organization" maxlength="150"></label></div>
-      <label>${u.message}<textarea name="message" rows="4" maxlength="1800" required></textarea></label><p class="hint">${u.contactHint}</p><button class="button button-solid" type="submit">${u.compose} ↗</button></form></details>
+      <label>${u.replyEmail}<input name="email" type="email" autocomplete="email" required maxlength="254"></label><div class="contact-trap" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div><label>${u.message}<textarea name="message" rows="4" maxlength="1800" required></textarea></label><p class="hint">${u.contactHint}</p><div id="contact-verification"></div><p id="contact-status" class="hint" role="status" aria-live="polite">${u.loading}</p><button class="button button-solid" type="submit" disabled>${u.compose}</button><button class="button button-outline" type="button" id="contact-retry" hidden>${u.retry}</button></form></details>
     </div></section>`;
   }
   function helper(content, lang, preview) {
@@ -161,7 +167,7 @@
       ${options.preview ? '<meta name="robots" content="noindex,nofollow">' : `<link rel="canonical" href="${ORIGIN + path}">${LANGS.map(l => `<link rel="alternate" hreflang="${l}" href="${ORIGIN + pathFor(l, type, slug)}">`).join('')}<link rel="alternate" hreflang="x-default" href="${ORIGIN + pathFor('en', type, slug)}">`}
       <meta property="og:title" content="${escape(title)}"><meta property="og:description" content="${escape(description)}"><meta property="og:url" content="${ORIGIN + path}"><meta property="og:type" content="website"><meta property="og:image" content="${ORIGIN}/og-image.png"><meta property="og:locale" content="${{ pt: 'pt_BR', en: 'en_US', es: 'es_AR' }[lang]}"><meta name="twitter:card" content="summary_large_image">
       <link rel="icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="manifest" href="/manifest.webmanifest"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles.css">
-      <script type="application/ld+json">${structured}</script></head><body data-lang="${lang}" data-page="${type}" data-metrics="${!!options.metrics}" ${options.preview ? 'data-preview="true"' : ''}>
+      <script type="application/ld+json">${structured}</script></head><body data-lang="${lang}" data-page="${type}" data-metrics="${!!options.metrics}" data-contact-demo="${!!options.contactDemo}" ${options.preview ? 'data-preview="true"' : ''}>
       <a class="skip-link" href="#main">${escape(d.skip_link)}</a>${options.preview ? `<div class="preview-strip">${u.preview}</div>` : ''}
       <header class="site-header"><div class="container header-inner"><a class="brand" href="${pathFor(lang)}">Maria Eduarda Miranda</a><nav class="site-nav" aria-label="${escape(d.nav_label)}"><ul><li><a href="${pathFor(lang)}#projects">${escape(d.nav_projects)}</a></li><li><a href="${pathFor(lang)}#education">${escape(d.nav_education)}</a></li><li><a href="${pathFor(lang)}#contact">${escape(d.nav_contact)}</a></li></ul></nav><nav class="lang-switch" aria-label="${escape(d.language_label)}">${LANGS.map(l => `<a class="lang-btn ${l === lang ? 'is-active' : ''}" lang="${l}" hreflang="${l}" href="${pathFor(l, type, slug)}" ${l === lang ? 'aria-current="page"' : ''} aria-label="${{ pt: 'Português', en: 'English', es: 'Español' }[l]}">${l.toUpperCase()}</a>`).join('')}</nav></div></header>
       <main id="main" tabindex="-1" class="${type === 'cv' ? 'cv-page' : ''}">${body}</main><footer class="site-footer"><div class="container footer-inner"><span>© ${new Date().getFullYear()} ${NAME}</span><span>${escape(d.footer_location)}</span><a href="${pathFor(lang, 'card')}">${u.card}</a><button type="button" data-install hidden>${u.install}</button></div></footer><div id="site-status" role="status" aria-live="polite" class="site-status" hidden></div>

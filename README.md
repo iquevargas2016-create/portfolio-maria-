@@ -37,7 +37,7 @@ Modelos padrão: `openai/gpt-5-mini` via Gateway e `gpt-5-mini` via OpenAI. Conf
 
 ## Métricas
 
-Vercel Web Analytics existente é mantido. Eventos: abrir pesquisa/CV, imprimir CV, email, telefone, compor email, salvar contato, compartilhar e copiar email. As mensagens do formulário não são enviadas para análise; ele abre apenas o aplicativo de email do visitante.
+Vercel Web Analytics existente é mantido. Eventos: abrir pesquisa/CV, imprimir CV, email, telefone, enviar mensagem (e contagem antiga de emails preparados), salvar contato, compartilhar e copiar email. As mensagens do formulário não são enviadas para análise. O envio direto opcional usa Resend; as configurações estão em CONTACT_SETUP.md.
 
 O painel oferece um link para as métricas da Vercel. Contadores internos de 30 dias são opcionais e só funcionam se um Redis REST já estiver configurado: `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`, ou `KV_REST_API_URL` + `KV_REST_API_TOKEN`. Não se cria nem contrata armazenamento automaticamente. São contagens de ações, não pessoas únicas. Preview/demonstração não registra ações. O build precisa dessas variáveis para habilitar o envio no site.
 
@@ -52,3 +52,7 @@ Testes Node + JSDOM cobrem renderização, rotas, escape de HTML, rascunhos, com
 ## Interface de IA guardada para uso futuro
 
 `FEATURES.assistantUI` em `shared/view.js` está em `false`. Isso retira os botões, a seção do painel e o assistente público, inclusive nas prévias e em rascunhos antigos que tenham `features.assistant=true`. O código é preservado. Para reativar a interface futuramente, altere essa constante para `true` e publique uma nova versão. A ativação visual não ativa a API paga: continuam valendo as configurações e confirmações descritas acima.
+
+## Contato direto
+
+Veja [CONTACT_SETUP.md](CONTACT_SETUP.md) para ativar Resend e Turnstile. O formulário não abre um aplicativo externo. Sem configuração, informa indisponibilidade e preserva o contato por email existente. O editor não envia mensagens reais. A prévia hospedada pode enviar após receber as variáveis de Preview. Os testes não enviam emails reais.

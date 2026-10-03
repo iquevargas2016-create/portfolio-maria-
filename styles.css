@@ -224,3 +224,7 @@ label { display: grid; gap: .4rem; font-size: .88rem; font-weight: 500; }
   .cv-page .tag-list { margin-top: 6pt; }
   a { color: inherit; }
 }
+
+.contact-trap { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+#contact-form button:disabled { opacity: .55; cursor: not-allowed; }
+#contact-status { min-height: 1.5em; }

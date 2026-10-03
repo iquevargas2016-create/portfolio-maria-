@@ -35,15 +35,58 @@
     }
   });
   const contact = document.getElementById('contact-form');
-  contact?.addEventListener('submit', event => {
-    event.preventDefault();
-    if (!contact.reportValidity()) return;
-    const data = new FormData(contact), intent = data.get('intent');
-    const subject = u[intent] || u.professional;
-    const body = `${u.greeting}\n\n${data.get('message')}\n\n${u.from}: ${data.get('name')}${data.get('organization') ? `\n${u.org}: ${data.get('organization')}` : ''}`;
-    track('contact_compose');
-    location.href = `mailto:${contact.dataset.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  });
+  if (contact) {
+    const button = contact.querySelector('[type="submit"]'), feedback = document.getElementById('contact-status'), retry = document.getElementById('contact-retry');
+    let token = '', widget, busy = false, initialized = false, loading = false, requestId = '', previousPayload = '';
+    const say = message => { feedback.textContent = message; };
+    const editorDemo = document.body.dataset.contactDemo === 'true';
+    async function initContact() {
+      if (loading || initialized) return;
+      if (editorDemo) { say(u.demoSend); return; }
+      loading = true; retry.hidden = true; say(u.loading);
+      try {
+        const response = await fetch('/api/contact', { cache: 'no-store' });
+        const config = await response.json();
+        if (!response.ok || !config.configured) { say(u.unavailable); retry.hidden = false; return; }
+        if (!window.turnstile) await new Promise((resolve, reject) => {
+          const script = document.createElement('script'); script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'; script.async = true;
+          const timeout = setTimeout(() => { script.remove(); reject(new Error('timeout')); }, 15000);
+          script.onload = () => { clearTimeout(timeout); resolve(); }; script.onerror = () => { clearTimeout(timeout); script.remove(); reject(new Error('script')); }; document.head.append(script);
+        });
+        widget = window.turnstile.render('#contact-verification', {
+          sitekey: config.siteKey, action: 'contact', language: lang, size: 'flexible',
+          callback: value => { token = value; button.disabled = busy; if ([u.loading, u.verify].includes(feedback.textContent)) say(''); },
+          'expired-callback': () => { token = ''; button.disabled = true; say(u.verify); },
+          'error-callback': () => { token = ''; button.disabled = true; say(u.verify); retry.hidden = false; }
+        });
+        initialized = true; if (!token) say(u.verify);
+      } catch { say(navigator.onLine ? u.failed : u.offlineSend); retry.hidden = false; }
+      finally { loading = false; }
+    }
+    contact.closest('details')?.addEventListener('toggle', event => { if (event.target.open) initContact(); });
+    retry.addEventListener('click', () => { if (initialized) { token = ''; button.disabled = true; window.turnstile.reset(widget); say(u.verify); retry.hidden = true; } else initContact(); });
+    if (editorDemo) say(u.demoSend);
+    contact.addEventListener('submit', async event => {
+      event.preventDefault();
+      if (busy || editorDemo || !contact.reportValidity()) return;
+      if (!navigator.onLine) { say(u.offlineSend); return; }
+      if (!token) { say(u.verify); return; }
+      const data = new FormData(contact);
+      const payload = Object.fromEntries(['name', 'email', 'organization', 'message', 'intent', 'website'].map(k => [k, String(data.get(k) || '')]));
+      payload.language = lang;
+      const fingerprint = JSON.stringify(payload);
+      if (fingerprint !== previousPayload || !requestId) { requestId = crypto.randomUUID(); previousPayload = fingerprint; }
+      busy = true; button.disabled = true; button.textContent = u.sending; say(u.sending);
+      const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 35000);
+      try {
+        const response = await fetch('/api/contact', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...payload, requestId, turnstileToken: token }), signal: controller.signal });
+        const result = await response.json();
+        if (!response.ok || result.ok !== true) { say(response.status === 429 ? u.rate : response.status === 503 ? u.unavailable : response.status === 403 ? u.verify : u.failed); return; }
+        contact.reset(); requestId = ''; previousPayload = ''; say(u.sent); track('contact_sent');
+      } catch { say(navigator.onLine ? u.failed : u.offlineSend); }
+      finally { clearTimeout(timeout); busy = false; token = ''; button.textContent = u.compose; button.disabled = true; if (window.turnstile && widget != null) window.turnstile.reset(widget); }
+    });
+  }
   const header = document.querySelector('.site-header');
   if (header && typeof ResizeObserver !== 'undefined') new ResizeObserver(() => document.documentElement.style.setProperty('--header-height', `${header.getBoundingClientRect().height}px`)).observe(header);
   window.addEventListener('offline', () => announce(u.offline, true));

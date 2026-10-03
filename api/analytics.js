@@ -1,6 +1,6 @@
 const crypto = require('node:crypto');
 const { endpoint, authenticate, bodyOf, error, rateLimit } = require('../lib/http');
-const EVENTS = ['research_open', 'cv_open', 'cv_print', 'email_click', 'phone_click', 'contact_compose', 'contact_save', 'share', 'email_copy'];
+const EVENTS = ['research_open', 'cv_open', 'cv_print', 'email_click', 'phone_click', 'contact_compose', 'contact_sent', 'contact_save', 'share', 'email_copy'];
 function storage() {
   const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
