@@ -157,7 +157,9 @@
     doc.querySelectorAll('h1,h2,h3,p,a,span,summary').forEach(node=>{
       if(node.children.length || node.closest('form') || node.classList.contains('contact-label')) return;
       const value=node.textContent.trim().replace(/ ↗$/,'');
-      const matches=candidates.filter(c=>c.value===value);
+      const contactValues=[...doc.querySelectorAll('.contact-value')];
+      const specificKey=node===contactValues[0]?'contact_email_value':node===contactValues[1]?'contact_location_value':node.closest('.site-footer') && value===state.content[state.editLang].footer_location?'footer_location':null;
+      const matches=specificKey?[{path:[state.editLang,specificKey],value}]:candidates.filter(c=>c.value===value);
       if(matches.length!==1) return;
       const id=visualPaths.push(matches[0].path)-1;
       node.dataset.visualId=String(id); node.tabIndex=0; node.setAttribute('role','button'); node.title=window.AdminI18n?.text('Editar este texto') || 'Editar este texto';

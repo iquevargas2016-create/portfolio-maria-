@@ -83,6 +83,8 @@ test('visual editor selects only known text, saves a draft, switches all UI and 
   const frame=d.querySelector('#preview-frame');
   const page=new JSDOM(frame.srcdoc); const selection=[...page.window.document.querySelectorAll('[data-visual-id]')].find(n=>n.textContent===content.pt.summary);
   assert.ok(selection);
+  const location=page.window.document.querySelectorAll('.contact-value')[1];assert.ok(location.hasAttribute('data-visual-id'));
+  w.dispatchEvent(new w.MessageEvent('message',{data:{kind:'maria-edit',id:Number(location.dataset.visualId)},source:frame.contentWindow}));assert.equal(d.querySelector('#visual-text').value,'Buenos Aires, Argentina');
   const message={kind:'maria-edit',id:Number(selection.dataset.visualId)};
   w.dispatchEvent(new w.MessageEvent('message',{data:message,source:w}));assert.equal(d.querySelector('#visual-text'),null);
   w.dispatchEvent(new w.MessageEvent('message',{data:message,source:frame.contentWindow}));
