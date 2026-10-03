@@ -103,8 +103,9 @@
       panel.innerHTML = heading('Oportunidades', 'Organize contatos recebidos, respostas e próximos passos.') + '<div id="opportunity-board" class="card"></div>';
       loadOpportunities();
     } else if (state.tab === 'analytics') {
-      panel.innerHTML = heading('O que desperta interesse', 'Acompanhe visitas e ações no perfil sem registrar o conteúdo das mensagens.') + `<div class="card"><h2>Vercel Analytics</h2><p>As visitas e os eventos do site continuam disponíveis no painel da Vercel.</p><a class="button" href="https://vercel.com/electro-md/portfolio-template-1/analytics" target="_blank" rel="noopener noreferrer">Abrir métricas na Vercel ↗</a></div><div class="card"><h2>Últimos 30 dias</h2><p id="metrics-state">Carregando contadores…</p><div id="metrics" class="metric-grid"></div></div>`;
+      panel.innerHTML = heading('O que desperta interesse', 'Acompanhe visitas e ações no perfil sem registrar o conteúdo das mensagens.') + `<div class="card"><h2>Estatísticas da Vercel · últimos 7 dias</h2><p id="vercel-metrics-state" role="status">Carregando…</p><div id="vercel-metrics"></div></div><div class="card"><h2>Vercel Analytics</h2><p>As visitas e os eventos do site continuam disponíveis no painel da Vercel.</p><a class="button" href="https://vercel.com/electro-md/portfolio-template-1/analytics" target="_blank" rel="noopener noreferrer">Abrir métricas na Vercel ↗</a></div><div class="card"><h2>Últimos 30 dias</h2><p id="metrics-state">Carregando contadores…</p><div id="metrics" class="metric-grid"></div></div>`;
       loadMetrics();
+      loadVercelMetrics();
     }
   }
   function updatePreview() {
@@ -154,9 +155,25 @@
     }
     draw();
   }
+  async function loadVercelMetrics() {
+    const note = $('#vercel-metrics-state');
+    if (demo) { note.textContent = 'A demonstração não consulta estatísticas reais.'; return; }
+    try {
+      const data = await api('/api/vercel-analytics'); if (state.tab !== 'analytics') return;
+      if (!data.configured) { note.textContent = 'Para conectar os dados reais, configure VERCEL_ANALYTICS_TOKEN em Production. Nenhuma credencial é exposta no navegador. Em previews, a consulta fica desativada.'; return; }
+      note.textContent = `Dados de produção · ${new Date(data.since).toLocaleDateString('pt-BR',{timeZone:'UTC'})} a ${new Date(data.until).toLocaleDateString('pt-BR',{timeZone:'UTC'})} (UTC). Atualização a cada 5 minutos. Visitantes por dia não devem ser somados como pessoas únicas do período.`;
+      function chart(title, rows, daily = false) {
+        if (!rows.length) return `<section><h3>${title}</h3><p>Sem dados no período.</p></section>`;
+        const max = Math.max(...rows.map(r => r.pageviews), 1);
+        const sorted = daily ? [...rows].sort((a,b) => a.label.localeCompare(b.label)) : [...rows].sort((a,b) => b.pageviews-a.pageviews);
+        return `<section class="analytics-report"><h3>${title}</h3><table><thead><tr><th scope="col">${daily ? 'Dia (UTC)' : 'Origem'}</th><th scope="col">Visualizações</th><th scope="col">Visitantes</th></tr></thead><tbody>${sorted.map(r => `<tr><th scope="row">${esc(daily ? r.label.slice(0,10) : r.label)}</th><td><span class="analytics-bar" style="width:${Math.round(r.pageviews/max*100)}%" aria-hidden="true"></span>${Number(r.pageviews).toLocaleString('pt-BR')}</td><td>${Number(r.visitors).toLocaleString('pt-BR')}</td></tr>`).join('')}</tbody></table></section>`;
+      }
+      $('#vercel-metrics').innerHTML = chart('Evolução diária',data.daily,true)+chart('Páginas mais acessadas',data.pages)+chart('Países',data.countries)+chart('Dispositivos',data.devices);
+    } catch(err) { if (state.tab === 'analytics') note.textContent = err.message; }
+  }
   async function loadMetrics() {
     if (demo) { $('#metrics-state').textContent = 'A demonstração não mostra números inventados. Entre no painel para consultar a disponibilidade dos contadores.'; return; }
-    try { const data = await api('/api/analytics'); if (state.tab !== 'analytics') return; if (!data.configured) { $('#metrics-state').textContent = 'Contadores internos não configurados. Use o painel da Vercel acima; nenhum serviço de armazenamento foi contratado.'; return; } $('#metrics-state').textContent = 'Ações registradas desde a ativação, nos últimos 30 dias. Não representam pessoas únicas.'; const names = { research_open: 'Pesquisas abertas', cv_open: 'Currículos abertos', cv_print: 'Impressões de currículo', email_click: 'Cliques em email', phone_click: 'Cliques em telefone', contact_compose: 'Emails preparados (anterior)', contact_sent: 'Mensagens enviadas', contact_save: 'Contatos salvos', share: 'Compartilhamentos', email_copy: 'Emails copiados' }; $('#metrics').innerHTML = Object.entries(names).map(([k, label]) => `<div class="metric"><strong>${Number(data.counts[k] || 0)}</strong>${label}</div>`).join(''); }
+    try { const data = await api('/api/analytics'); if (state.tab !== 'analytics') return; if (!data.configured) { $('#metrics-state').textContent = 'Contadores internos indisponíveis neste ambiente. Consulte a Vercel pelo link acima.'; return; } $('#metrics-state').textContent = 'Ações registradas desde a ativação, nos últimos 30 dias. Não representam pessoas únicas.'; const names = { research_open: 'Pesquisas abertas', cv_open: 'Currículos abertos', cv_print: 'Impressões de currículo', email_click: 'Cliques em email', contact_sent: 'Mensagens enviadas', contact_save: 'Contatos salvos', share: 'Compartilhamentos', email_copy: 'Emails copiados' }; $('#metrics').innerHTML = Object.entries(names).map(([k, label]) => `<div class="metric"><strong>${Number(data.counts[k] || 0)}</strong>${label}</div>`).join(''); }
     catch (err) { if ($('#metrics-state')) $('#metrics-state').textContent = err.message; }
   }
   async function start(data) {
