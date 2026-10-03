@@ -6,6 +6,20 @@
   const LANGS = ['pt', 'en', 'es'];
   const clone = value => structuredClone(value);
   const state = { token: '', content: null, published: null, revision: '', photo: null, tab: 'profile', canPublish: false, ai: false, previewed: '', previewLang: 'pt', previewType: 'home', previewSource: 'draft', mobile: false };
+  let previewAssets;
+  async function loadPreviewAssets() {
+    if (previewAssets) return;
+    const paths = ['/styles.css', '/shared/view.js', '/site.js', '/photo.jpg'];
+    const assets = await Promise.all(paths.map(async path => {
+      const response = await fetch(path);
+      if (!response.ok) throw new Error('Não foi possível carregar os arquivos da prévia. Recarregue a página.');
+      if (path !== '/photo.jpg') return response.text();
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      let binary = ''; for (const byte of bytes) binary += String.fromCharCode(byte);
+      return `data:image/jpeg;base64,${btoa(binary)}`;
+    }));
+    previewAssets = { css: assets[0], view: assets[1], site: assets[2], photo: assets[3] };
+  }
   const sections = { profile: 'Perfil e contato', projects: 'Pesquisas', education: 'Formação', publications: 'Publicações', certificates: 'Certificados', languages: 'Idiomas', custom: 'Seções extras', translations: 'Revisar traduções', assistant: 'Assistente e IA', preview: 'Antes e depois', history: 'Histórico', analytics: 'Interesse no perfil' };
   const labels = { eyebrow: 'Apresentação', institution: 'Instituição', graduation: 'Formatura prevista', summary: 'Resumo do perfil', contact_email_value: 'Email', contact_phone_value: 'Telefone', contact_location_value: 'Localização', contact_title: 'Título do contato', contact_lead: 'Convite para contato', projects_title: 'Título de pesquisas', projects_lead: 'Introdução de pesquisas', education_title: 'Título da formação', publications_title: 'Título de publicações', publications_lead: 'Introdução de publicações', certificates_title: 'Título de certificados', certificates_lead: 'Introdução de certificados', languages_title: 'Título dos idiomas', title: 'Título completo', display_title: 'Título curto', subtitle: 'Instituição e função', desc: 'Descrição', venue: 'Publicação / evento', issuer: 'Instituição emissora', tags: 'Temas — um por linha', lead: 'Introdução', name: 'Nome do idioma' };
   const get = path => path.reduce((v, key) => v?.[key], state.content);
@@ -93,7 +107,12 @@
   function updatePreview() {
     const [type, slug] = state.previewType.split(':');
     const content = state.previewSource === 'draft' ? state.content : state.published;
-    $('#preview-frame').srcdoc = V.renderPage(content, { lang: state.previewLang, type, slug, preview: true, photo: state.previewSource === 'draft' ? state.photo : null }).replace('<head>', `<head><base href="${esc(location.origin)}/">`);
+    const inlineScript = source => source.replace(/<\/script/gi, '<\\/script');
+    $('#preview-frame').srcdoc = V.renderPage(content, { lang: state.previewLang, type, slug, preview: true, photo: (state.previewSource === 'draft' && state.photo) || previewAssets.photo })
+      .replace('<head>', `<head><base href="${esc(location.origin)}/">`)
+      .replace('<link rel="stylesheet" href="/styles.css">', () => `<style>${previewAssets.css}</style>`)
+      .replace('<script src="/shared/view.js" defer></script>', () => `<script>${inlineScript(previewAssets.view)}</script>`)
+      .replace('<script src="/site.js" defer></script>', () => `<script>${inlineScript(previewAssets.site)}</script>`);
     if (state.previewSource === 'draft') state.previewed = signature();
   }
   async function loadHistory() {
@@ -107,6 +126,7 @@
     catch (err) { if ($('#metrics-state')) $('#metrics-state').textContent = err.message; }
   }
   async function start(data) {
+    await loadPreviewAssets();
     state.published = normalize(data.content); state.content = clone(state.published); state.revision = data.revision || ''; state.canPublish = !!data.canPublish && !demo; state.ai = !!data.ai?.configured && !demo;
     try { const saved = JSON.parse(localStorage.getItem(KEY)); if (saved?.content?.pt && saved.content.en && saved.content.es) { state.content = normalize(saved.content); state.photo = /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(saved.photo || '') ? saved.photo : null; state.revision = saved.revision || state.revision; $('#draft-status').textContent = 'Rascunho anterior recuperado'; } } catch { /* A broken local draft must not prevent login. */ }
     $('#login').hidden = true; $('#app').hidden = false; $('#publish').disabled = !state.canPublish;

@@ -12,7 +12,12 @@ async function admin() {
   w.structuredClone = structuredClone; w.confirm = () => true;
   w.HTMLDialogElement.prototype.showModal = function () { this.open = true; };
   w.HTMLDialogElement.prototype.close = function () { this.open = false; };
-  w.fetch = async url => { requests.push(url); assert.equal(url, '/content.json'); return { ok: true, json: async () => structuredClone(content) }; };
+  w.fetch = async url => {
+    requests.push(url);
+    assert.ok(['/content.json', '/styles.css', '/shared/view.js', '/site.js', '/photo.jpg'].includes(url));
+    const bytes = url === '/content.json' ? null : fs.readFileSync(require.resolve('..' + url));
+    return { ok: true, json: async () => structuredClone(content), text: async () => bytes.toString(), arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) };
+  };
   w.eval(script('shared/view.js')); w.eval(script('admin/admin.js')); await settle();
   return { dom, w, d: w.document, requests };
 }
@@ -26,7 +31,7 @@ test('demo edits and persists a draft, compares it, and cannot publish', async (
   assert.match(d.querySelector('iframe').srcdoc, /Resumo revisado no rascunho/);
   const version = d.querySelector('#preview-source'); version.value = 'published'; version.dispatchEvent(new w.Event('change', { bubbles: true }));
   assert.ok(d.querySelector('iframe').srcdoc.includes(content.pt.summary));
-  assert.deepEqual(requests, ['/content.json']); dom.window.close();
+  assert.ok(requests.every(url => !url.startsWith('/api/'))); dom.window.close();
 });
 test('manual ChatGPT suggestion only changes draft after explicit acceptance', async () => {
   const { dom, d, w, requests } = await admin();
@@ -37,7 +42,7 @@ test('manual ChatGPT suggestion only changes draft after explicit acceptance', a
   assert.equal(w.localStorage.getItem('maria-draft-v2-demo'), null);
   d.querySelector('#accept-ai').click();
   assert.equal(JSON.parse(w.localStorage.getItem('maria-draft-v2-demo')).content.pt.summary, 'Sugestão revisada pela autora.');
-  assert.deepEqual(requests, ['/content.json']); dom.window.close();
+  assert.ok(requests.every(url => !url.startsWith('/api/'))); dom.window.close();
 });
 test('assistant test does not enable the published feature or invoke a model', async () => {
   const { dom, d, w, requests } = await admin();
@@ -50,7 +55,7 @@ test('assistant test does not enable the published feature or invoke a model', a
   assert.ok(helper.querySelector('[data-results]').textContent.includes(content.collections.projects[0].desc.pt));
   helper.querySelector('input').value = 'xyzsemresultado'; helper.querySelector('form').dispatchEvent(new pw.Event('submit', { bubbles: true, cancelable: true }));
   assert.match(helper.querySelector('[data-results]').textContent, /Não encontrei/);
-  assert.equal(w.localStorage.getItem('maria-draft-v2-demo'), null); assert.deepEqual(requests, ['/content.json']); page.window.close(); dom.window.close();
+  assert.equal(w.localStorage.getItem('maria-draft-v2-demo'), null); assert.ok(requests.every(url => !url.startsWith('/api/'))); page.window.close(); dom.window.close();
 });
 test('editing an existing project preserves its permanent address and other languages', async () => {
   const { dom, d, w } = await admin(); d.querySelector('[data-tab="projects"]').click();
