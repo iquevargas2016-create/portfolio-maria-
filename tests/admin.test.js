@@ -91,6 +91,7 @@ test('visual editor selects only known text, saves a draft, switches all UI and 
   assert.equal(JSON.parse(w.localStorage.getItem('maria-draft-v2-demo')).content.pt.summary,'Novo resumo visual.');
   const device=d.querySelector('#visual-device');device.value='mobile';device.dispatchEvent(new w.Event('change',{bubbles:true}));assert.ok(d.querySelector('#preview-frame').classList.contains('mobile'));
   const color=d.querySelector('#visual-color');color.value='#225588';color.dispatchEvent(new w.Event('change',{bubbles:true}));assert.match(d.querySelector('#preview-frame').srcdoc,/--brand:#225588/);
+  const theme=d.querySelector('#visual-theme');theme.value='dark';theme.dispatchEvent(new w.Event('change',{bubbles:true}));assert.match(d.querySelector('#preview-frame').srcdoc,/background:#090b0e/);assert.match(d.querySelector('#preview-frame').srcdoc,/color:#f0f3f6/);
   const lang=d.querySelector('#edit-language');lang.value='en';lang.dispatchEvent(new w.Event('change',{bubbles:true}));await settle();
   assert.equal(d.documentElement.lang,'en');assert.equal(d.querySelector('[data-tab="visual"]').textContent,'Edit on the website');assert.equal(d.querySelector('#publish').textContent,'Publish');assert.match(d.querySelector('iframe').srcdoc,/lang="en"/);
   assert.equal(d.querySelector('#publish').disabled,true);assert.ok(requests.every(url=>!url.startsWith('/api/')));
