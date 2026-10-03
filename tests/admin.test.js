@@ -131,3 +131,10 @@ test('editing sections open manually or through shortcuts in the same expandable
 test('dashboard theme saves visitor preference independently of website draft',async()=>{
  const {dom,d,w}=await admin();const button=d.querySelector('#admin-theme');assert.equal(d.documentElement.dataset.adminTheme,'light');button.click();assert.equal(d.documentElement.dataset.adminTheme,'dark');assert.equal(w.localStorage.getItem('maria-admin-theme'),'dark');assert.equal(w.localStorage.getItem('maria-draft-v2-demo'),null);button.click();assert.equal(d.documentElement.dataset.adminTheme,'light');button.click();assert.equal(w.localStorage.getItem('maria-admin-theme'),null);dom.window.close();
 });
+
+test('restoring colors preserves panel elements, open disclosures and selected mode',async()=>{
+ const {dom,d,w}=await admin();const editor=d.querySelector('.edit-site-disclosure'),appearance=d.querySelector('.visual-settings'),preview=d.querySelector('.preview-disclosure');editor.open=appearance.open=preview.open=true;
+ const mode=d.querySelector('#visual-theme');mode.value='dark';mode.dispatchEvent(new w.Event('change',{bubbles:true}));
+ const color=d.querySelector('[data-palette="background"]');color.value='#112233';color.dispatchEvent(new w.Event('input',{bubbles:true}));
+ d.querySelector('#visual-reset-colors').click();assert.equal(d.querySelector('.visual-settings'),appearance);assert.ok(editor.open&&appearance.open&&preview.open);assert.equal(mode.value,'dark');assert.equal(color.value,'#090b0e');dom.window.close();
+});
