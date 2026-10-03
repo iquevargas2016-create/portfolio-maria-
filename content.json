@@ -2,13 +2,13 @@
   "en": {
     "skip_link": "Skip to content",
     "nav_contact": "Contact",
-    "nav_projects": "Projects",
+    "nav_projects": "Research",
     "nav_education": "Education",
     "eyebrow": "Medical Student",
     "institution": "Fundación H. A. Barceló — Buenos Aires, Argentina",
     "graduation": "Expected graduation: 2028",
-    "summary": "Fifth-year medical student interested in electroporation-based cancer treatments and translational research, with a focus on improving electrochemotherapy through experimental research.",
-    "contact_title": "Contact",
+    "summary": "Fifth-year medical student focused on experimental research in electrochemotherapy, with an interest in translational oncology.",
+    "contact_title": "Let’s connect",
     "contact_lead": "Interested in research collaborations, academic opportunities, and professional networking.",
     "contact_email_label": "Email",
     "contact_email_value": "miranda.maria.md@gmail.com",
@@ -16,8 +16,8 @@
     "contact_phone_value": "+54 11 6690-9485",
     "contact_location_label": "Location",
     "contact_location_value": "Buenos Aires, Argentina",
-    "projects_title": "Projects & Involvement",
-    "projects_lead": "Academic, research and volunteer work carried out alongside the medical programme.",
+    "projects_title": "Research & Projects",
+    "projects_lead": "Experimental research in electrochemotherapy alongside medical training.",
     "publications_title": "Publications & Academic Work",
     "publications_lead": "Articles, papers, and academic work produced during the medical programme.",
     "certificates_title": "Certificates & Courses",
@@ -25,18 +25,25 @@
     "credential_link_label": "View credential",
     "education_title": "Education",
     "languages_title": "Languages",
-    "footer_location": "Buenos Aires, Argentina"
+    "footer_location": "Buenos Aires, Argentina",
+    "nav_label": "Sections",
+    "language_label": "Language selector",
+    "hero_research": "Explore research",
+    "hero_contact": "Get in touch",
+    "project_full_title_label": "Full academic title",
+    "project_link_label": "View project",
+    "publication_link_label": "Read publication"
   },
   "pt": {
     "skip_link": "Pular para o conteúdo",
     "nav_contact": "Contato",
-    "nav_projects": "Projetos",
+    "nav_projects": "Pesquisa",
     "nav_education": "Formação",
     "eyebrow": "Estudante de Medicina",
     "institution": "Fundación H. A. Barceló — Buenos Aires, Argentina",
     "graduation": "Formatura prevista: 2028",
-    "summary": "Estudante de Medicina do quinto ano, com interesse em tratamentos oncológicos baseados em eletroporação e pesquisa translacional, com foco no aprimoramento da eletroquimioterapia por meio de pesquisa experimental.",
-    "contact_title": "Contato",
+    "summary": "Estudante do 5º ano de Medicina com foco em pesquisa experimental em eletroquimioterapia e interesse em oncologia translacional.",
+    "contact_title": "Vamos conversar",
     "contact_lead": "Interessada em colaborações de pesquisa, oportunidades acadêmicas e networking profissional.",
     "contact_email_label": "Email",
     "contact_email_value": "miranda.maria.md@gmail.com",
@@ -44,8 +51,8 @@
     "contact_phone_value": "+54 11 6690-9485",
     "contact_location_label": "Localização",
     "contact_location_value": "Buenos Aires, Argentina",
-    "projects_title": "Projetos e Atuação",
-    "projects_lead": "Trabalhos acadêmicos, de pesquisa e voluntariado realizados ao longo da graduação em Medicina.",
+    "projects_title": "Pesquisa e projetos",
+    "projects_lead": "Pesquisa experimental em eletroquimioterapia ao longo da formação em Medicina.",
     "publications_title": "Publicações e Produção Acadêmica",
     "publications_lead": "Artigos, trabalhos e produções acadêmicas realizados ao longo da graduação em Medicina.",
     "certificates_title": "Certificados e Cursos",
@@ -53,18 +60,25 @@
     "credential_link_label": "Ver certificado",
     "education_title": "Formação",
     "languages_title": "Idiomas",
-    "footer_location": "Buenos Aires, Argentina"
+    "footer_location": "Buenos Aires, Argentina",
+    "nav_label": "Seções",
+    "language_label": "Seletor de idiomas",
+    "hero_research": "Ver pesquisa",
+    "hero_contact": "Entrar em contato",
+    "project_full_title_label": "Título acadêmico completo",
+    "project_link_label": "Ver projeto",
+    "publication_link_label": "Ler publicação"
   },
   "es": {
     "skip_link": "Saltar al contenido",
     "nav_contact": "Contacto",
-    "nav_projects": "Proyectos",
+    "nav_projects": "Investigación",
     "nav_education": "Formación",
     "eyebrow": "Estudiante de Medicina",
     "institution": "Fundación H. A. Barceló — Buenos Aires, Argentina",
     "graduation": "Graduación prevista: 2028",
-    "summary": "Estudiante de quinto año de Medicina interesada en tratamientos oncológicos basados en electroporación e investigación traslacional, con foco en mejorar la electroquimioterapia mediante investigación experimental.",
-    "contact_title": "Contacto",
+    "summary": "Estudiante de quinto año de Medicina centrada en la investigación experimental en electroquimioterapia, con interés en la oncología traslacional.",
+    "contact_title": "Conversemos",
     "contact_lead": "Interesada en colaboraciones de investigación, oportunidades académicas y networking profesional.",
     "contact_email_label": "Correo electrónico",
     "contact_email_value": "miranda.maria.md@gmail.com",
@@ -72,8 +86,8 @@
     "contact_phone_value": "+54 11 6690-9485",
     "contact_location_label": "Ubicación",
     "contact_location_value": "Buenos Aires, Argentina",
-    "projects_title": "Proyectos y Participación",
-    "projects_lead": "Trabajos académicos, de investigación y voluntariado realizados junto con la carrera de Medicina.",
+    "projects_title": "Investigación y proyectos",
+    "projects_lead": "Investigación experimental en electroquimioterapia durante la formación en Medicina.",
     "publications_title": "Publicaciones y Producción Académica",
     "publications_lead": "Artículos, trabajos y producciones académicas realizados durante la carrera de Medicina.",
     "certificates_title": "Certificados y Cursos",
@@ -81,7 +95,14 @@
     "credential_link_label": "Ver certificado",
     "education_title": "Formación",
     "languages_title": "Idiomas",
-    "footer_location": "Buenos Aires, Argentina"
+    "footer_location": "Buenos Aires, Argentina",
+    "nav_label": "Secciones",
+    "language_label": "Selector de idiomas",
+    "hero_research": "Ver investigación",
+    "hero_contact": "Contactar",
+    "project_full_title_label": "Título académico completo",
+    "project_link_label": "Ver proyecto",
+    "publication_link_label": "Leer publicación"
   },
   "collections": {
     "projects": [
@@ -104,10 +125,32 @@
         },
         "link": "",
         "tags": {
-          "en": ["Electroporation", "Electrochemotherapy", "Electrode Degradation", "Biomedical Engineering"],
-          "pt": ["Eletroporação", "Eletroquimioterapia", "Degradação de Eletrodos", "Engenharia Biomédica"],
-          "es": ["Electroporación", "Electroquimioterapia", "Degradación de Electrodos", "Ingeniería Biomédica"]
-        }
+          "en": [
+            "Electroporation",
+            "Electrochemotherapy",
+            "Electrode Degradation",
+            "Biomedical Engineering"
+          ],
+          "pt": [
+            "Eletroporação",
+            "Eletroquimioterapia",
+            "Degradação de Eletrodos",
+            "Engenharia Biomédica"
+          ],
+          "es": [
+            "Electroporación",
+            "Electroquimioterapia",
+            "Degradación de Electrodos",
+            "Ingeniería Biomédica"
+          ]
+        },
+        "display_title": {
+          "en": "Electrode durability in electrochemotherapy",
+          "pt": "Durabilidade de eletrodos em eletroquimioterapia",
+          "es": "Durabilidad de electrodos en electroquimioterapia"
+        },
+        "id": "electrode-durability",
+        "slug": "electrode-durability"
       }
     ],
     "publications": [],
@@ -129,14 +172,27 @@
           "en": "Undergraduate medical program with integrated clinical training, hospital rotations, and a strong emphasis on research and evidence-based medicine.",
           "pt": "Graduação em Medicina com formação clínica integrada, estágios hospitalares e forte ênfase em pesquisa e medicina baseada em evidências.",
           "es": "Programa de grado en Medicina con formación clínica integrada, rotaciones hospitalarias y fuerte énfasis en investigación y medicina basada en evidencia."
-        }
+        },
+        "id": "medical-degree"
       }
     ],
     "custom_sections": [],
     "languages": [
-      { "code": "pt", "level": "native" },
-      { "code": "es", "level": "fluent" },
-      { "code": "en", "level": "advanced" }
+      {
+        "code": "pt",
+        "level": "native"
+      },
+      {
+        "code": "es",
+        "level": "fluent"
+      },
+      {
+        "code": "en",
+        "level": "advanced"
+      }
     ]
+  },
+  "editorial": {
+    "translationReview": {}
   }
 }

@@ -1,3 +1,6 @@
 .vercel
 .env*
 .build.swp
+node_modules/
+public/
+.DS_Store
