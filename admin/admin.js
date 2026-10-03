@@ -142,6 +142,13 @@
     languages:'Esta lista mostra os idiomas que você fala e seu nível em cada um. Ela vem do perfil atual. Adicionar, mudar ou excluir um idioma altera essa lista; não muda o idioma da tela. Confira antes de publicar.'
   };
   function heading(title, lead, action = '') { return `<div class="panel-heading"><div><h1>${title}</h1><p class="panel-lead">${lead}</p>${areaHelp[state.tab]?`<p class="area-help">${areaHelp[state.tab]}</p>`:''}${['visual','profile','projects','education','publications','certificates','custom'].includes(state.tab) ? `<label class="editor-language">Idioma de edição<select id="edit-language">${LANGS.map(l => `<option value="${l}" ${l === state.editLang ? 'selected' : ''}>${{pt:'Português',en:'English',es:'Español'}[l]}</option>`).join('')}</select></label><p class="hint">Edite uma vez. As outras versões serão traduzidas automaticamente.</p>` : ''}</div>${action}</div>`; }
+  const layoutKey=`maria-admin-layout${demo?'-demo':''}`;
+  function readLayout(){try{const saved=JSON.parse(localStorage.getItem(layoutKey)||'null');return saved?.expires>Date.now()?saved:null;}catch{return null;}}
+  function disclosureKey(detail){if(detail.dataset.editSection)return 'section:'+detail.dataset.editSection;for(const name of ['edit-site-disclosure','content-disclosure','visual-settings','preview-disclosure'])if(detail.classList.contains(name))return name;if(detail.querySelector('#section-order'))return 'section-order';const scope=detail.closest('[data-edit-section]');return scope?'item:'+scope.dataset.editSection+':'+[...scope.querySelectorAll('details')].indexOf(detail):null;}
+  let layoutTimer;
+  function rememberLayout(){if(state.tab!=='visual')return;clearTimeout(layoutTimer);layoutTimer=setTimeout(()=>{try{localStorage.setItem(layoutKey,JSON.stringify({expires:Date.now()+600000,open:[...$('#panel').querySelectorAll('details[open]')].map(disclosureKey).filter(Boolean),section:state.visualSection || null}));}catch{}},100);}
+  $('#panel').addEventListener('toggle',rememberLayout,true);
+  function restoreLayout(){const saved=readLayout();if(!saved || state.tab!=='visual')return;for(const detail of $('#panel').querySelectorAll('details')){const key=disclosureKey(detail);if(key)detail.open=saved.open.includes(key);}}
   function render() {
     $('#navigation').innerHTML = Object.entries(sections).filter(([id])=>['visual','preview','history','opportunities','analytics','assistant'].includes(id)).map(([id, title]) => `<button data-tab="${id}" class="${state.tab === id ? 'active' : ''}" ${state.tab === id ? 'aria-current="page"' : ''}>${title}</button>`).join('');
     const panel = $('#panel');
@@ -197,7 +204,7 @@
     const order = state.content.appearance?.order || ['projects','education',...state.content.collections.custom_sections.map((_,i)=>`custom-${i}`),'contact'];
     $('#section-order').innerHTML = order.map((id,i)=>`<div class="controls"><span>${esc(id.startsWith('custom-') ? V.text(state.content.collections.custom_sections[Number(id.slice(7))]?.title,state.editLang) || 'Nova seção' : ({projects:'Pesquisas',education:'Formação',contact:'Contato'})[id])}</span><button data-section-index="${i}" data-step="-1" ${i===0?'disabled':''} aria-label="Mover para cima">↑</button><button data-section-index="${i}" data-step="1" ${i===order.length-1?'disabled':''} aria-label="Mover para baixo">↓</button></div>`).join('');
     panel.querySelectorAll('[data-edit-section]').forEach(detail=>detail.addEventListener('toggle',()=>{if(detail.open && detail.dataset.editSection!=='text' && state.visualSection!==detail.dataset.editSection)openVisualSection(detail.dataset.editSection);else if(!detail.open && state.visualSection===detail.dataset.editSection)state.visualSection=null;}));
-    updatePreview(); if(state.visualSection)openVisualSection(state.visualSection);
+    updatePreview(); if(state.visualSection)openVisualSection(state.visualSection);restoreLayout();
   }
   function editablePreview(html) {
     const doc = new DOMParser().parseFromString(html,'text/html'), candidates = [];
@@ -313,6 +320,7 @@
     try { const saved = JSON.parse(localStorage.getItem(KEY)); if (saved?.content?.pt && saved.content.en && saved.content.es) { state.content = normalize(saved.content); state.photo = /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(saved.photo || '') ? saved.photo : null; state.revision = saved.revision || state.revision; $('#draft-status').textContent = 'Rascunho anterior recuperado'; } } catch { /* A broken local draft must not prevent login. */ }
     $('#login').hidden = true; $('#app').hidden = false; $('#publish').disabled = !state.canPublish;
     $('#environment-note').textContent = demo ? 'Demonstração: você pode editar e testar. Nada será publicado e nenhum serviço pago será acionado.' : state.canPublish ? 'Edição em rascunho. Confira a prévia antes de publicar.' : 'Ambiente de prévia: publicação bloqueada. Você pode editar, comparar e testar.';
+    const savedLayout=readLayout();if(savedLayout)state.visualSection=savedLayout.section;
     render();
   }
   $('#login-form').addEventListener('submit', async event => {
