@@ -127,3 +127,7 @@ test('editing sections open manually or through shortcuts in the same expandable
  const languages=d.querySelector('[data-edit-section="languages"]');d.querySelector('[data-section="languages"]').click();await settle();assert.equal(languages.open,true);assert.equal(contact.open,false);assert.ok(languages.querySelector('[data-add-language]'));
  dom.window.close();
 });
+
+test('dashboard theme saves visitor preference independently of website draft',async()=>{
+ const {dom,d,w}=await admin();const button=d.querySelector('#admin-theme');assert.equal(d.documentElement.dataset.adminTheme,'light');button.click();assert.equal(d.documentElement.dataset.adminTheme,'dark');assert.equal(w.localStorage.getItem('maria-admin-theme'),'dark');assert.equal(w.localStorage.getItem('maria-draft-v2-demo'),null);button.click();assert.equal(d.documentElement.dataset.adminTheme,'light');button.click();assert.equal(w.localStorage.getItem('maria-admin-theme'),null);dom.window.close();
+});

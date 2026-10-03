@@ -2,6 +2,11 @@
   'use strict';
   const V = window.Portfolio, $ = selector => document.querySelector(selector), esc = V.escape;
   const demo = new URLSearchParams(location.search).get('demo') === '1';
+  const adminThemeMedia=window.matchMedia?.('(prefers-color-scheme: dark)');
+  let adminThemePreference='auto';try{const saved=localStorage.getItem('maria-admin-theme');if(['light','dark'].includes(saved))adminThemePreference=saved;}catch{}
+  function applyAdminTheme(){document.documentElement.dataset.adminTheme=adminThemePreference==='auto'?(adminThemeMedia?.matches?'dark':'light'):adminThemePreference;const label={auto:'Automático',light:'Claro',dark:'Noturno'}[adminThemePreference];$('#admin-theme').textContent='◐ '+(window.AdminI18n?.text(label)||label);$('#admin-theme').setAttribute('aria-label',window.AdminI18n?.text('Tema do painel') || 'Tema do painel');}
+  $('#admin-theme').addEventListener('click',()=>{adminThemePreference={auto:'dark',dark:'light',light:'auto'}[adminThemePreference];try{if(adminThemePreference==='auto')localStorage.removeItem('maria-admin-theme');else localStorage.setItem('maria-admin-theme',adminThemePreference);}catch{}applyAdminTheme();});
+  adminThemeMedia?.addEventListener?.('change',applyAdminTheme);applyAdminTheme();
   const KEY = `maria-draft-v2${demo ? '-demo' : ''}`;
   const LANGS = ['pt', 'en', 'es'];
   const fixedContactLabels = new Set(['contact_email_label', 'contact_location_label', 'hero_research', 'hero_contact', 'languages_title', 'nav_projects', 'nav_contact']);
@@ -280,7 +285,7 @@
     if(t.id==='visual-theme'){state.content.appearance ||= {};state.content.appearance.theme=t.value;saveDraft();updatePreview();return;}
     if(t.id === 'visual-device') { state.mobile=t.value==='mobile';render();return; }
     if(t.id === 'visual-color') { state.content.appearance ||= {}; state.content.appearance.brand=t.value; saveDraft(); updatePreview(); return; }
-    if (t.id === 'edit-language') { state.editLang = t.value; state.previewLang = t.value; window.AdminI18n?.setLanguage(t.value); render(); return; }
+    if (t.id === 'edit-language') { state.editLang = t.value; state.previewLang = t.value; window.AdminI18n?.setLanguage(t.value); applyAdminTheme(); render(); return; }
     if (t.id === 'preview-source') { state.previewSource = t.value; updatePreview(); }
     if (t.id === 'preview-language') { state.previewLang = t.value; updatePreview(); }
     if (t.id === 'preview-type') { state.previewType = t.value; updatePreview(); }

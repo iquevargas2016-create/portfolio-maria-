@@ -19,3 +19,16 @@ select{appearance:none;-webkit-appearance:none;padding-right:2.8rem!important;ba
 .preview-disclosure .visual-layout{margin-top:1rem;padding-top:0;border-top:0}
 
 .content-disclosure .editing-sections{margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.6rem}.content-disclosure .edit-section{margin:0;padding:.65rem 1rem;border-radius:8px}.content-disclosure .edit-section[open]{grid-column:1/-1}.content-disclosure .edit-section>summary{padding:.4rem 0;font-size:.9rem}@media(max-width:550px){.content-disclosure .editing-sections{grid-template-columns:1fr}}
+
+/* Panel theme is independent of the website draft palette. */
+html[data-admin-theme="dark"]{color-scheme:dark;--navy:#b9d7ed;--muted:#a9b9c9;--border:#354250;background:#0b1016;color:#edf3f8}
+html[data-admin-theme="dark"] body{background:#0b1016;color:#edf3f8}
+html[data-admin-theme="dark"] .topbar,html[data-admin-theme="dark"] .sidebar,html[data-admin-theme="dark"] .card,html[data-admin-theme="dark"] .visual-shortcuts,html[data-admin-theme="dark"] .login-card,html[data-admin-theme="dark"] dialog{background:#151e28;color:#edf3f8}
+html[data-admin-theme="dark"] button,html[data-admin-theme="dark"] .button,html[data-admin-theme="dark"] input,html[data-admin-theme="dark"] textarea,html[data-admin-theme="dark"] select{background:#1d2a38;color:#edf3f8;border-color:#4a5d70}
+html[data-admin-theme="dark"] button:hover,html[data-admin-theme="dark"] .button:hover{background:#293b4e}
+html[data-admin-theme="dark"] button.primary{background:#b9d7ed;color:#102030;border-color:#b9d7ed}
+html[data-admin-theme="dark"] button.danger,html[data-admin-theme="dark"] #login-error,html[data-admin-theme="dark"] #publish-error{color:#ffb0ac}
+html[data-admin-theme="dark"] .sidebar nav button.active{background:#293b4e;color:#edf3f8}
+html[data-admin-theme="dark"] .environment-note,html[data-admin-theme="dark"] .draft-warning{background:#332918;color:#f2d5a0}
+html[data-admin-theme="dark"] .login-wrap,html[data-admin-theme="dark"] .preview-wrap{background:#0e1721}
+html[data-admin-theme="dark"] a{color:#b9d7ed}html[data-admin-theme="dark"] .toast{background:#b9d7ed;color:#102030}
