@@ -24,7 +24,7 @@ async function admin(enableAssistant = false) {
 test('demo edits and persists a draft, compares it, and cannot publish', async () => {
   const { dom, w, d, requests } = await admin();
   assert.equal(d.querySelector('#app').hidden, false); assert.equal(d.querySelector('#publish').disabled, true);
-  d.querySelector('[data-tab="profile"]').click();
+  w.dispatchEvent(new w.MessageEvent('message',{source:d.querySelector('iframe').contentWindow,data:{kind:'maria-edit-section',section:'profile'}}));
   const input = [...d.querySelectorAll('textarea[data-path]')].find(n => n.dataset.path === '["pt","summary"]');
   input.value = 'Resumo revisado no rascunho.'; input.dispatchEvent(new w.Event('input', { bubbles: true }));
   const saved = JSON.parse(w.localStorage.getItem('maria-draft-v2-demo')); assert.equal(saved.content.pt.summary, input.value);
@@ -59,7 +59,7 @@ test('assistant test does not enable the published feature or invoke a model', a
   assert.equal(w.localStorage.getItem('maria-draft-v2-demo'), null); assert.ok(requests.every(url => !url.startsWith('/api/'))); page.window.close(); dom.window.close();
 });
 test('editing an existing project preserves its permanent address and other languages', async () => {
-  const { dom, d, w } = await admin(); d.querySelector('[data-tab="projects"]').click();
+  const { dom, d, w } = await admin(); d.querySelector('[data-section="projects"]').click();
   const field = [...d.querySelectorAll('textarea')].find(n => n.dataset.path === '["collections","projects",0,"desc","pt"]');
   field.value = 'Descrição revisada.'; field.dispatchEvent(new w.Event('input', { bubbles: true }));
   const draft = JSON.parse(w.localStorage.getItem('maria-draft-v2-demo')).content;
@@ -102,13 +102,13 @@ test('fixed labels cannot be selected and education can only be added, completed
   const {dom,d,w}=await admin();
   const page=new JSDOM(d.querySelector('iframe').srcdoc);
   for(const node of page.window.document.querySelectorAll('.contact-label,.hero-actions a:first-child,.hero-actions a:last-child')) assert.equal(node.hasAttribute('data-visual-id'),false);
-  d.querySelector('[data-tab="profile"]').click();
+  d.querySelector('[data-section="contact"]').click();
   for(const key of ['contact_email_label','contact_location_label','hero_research','hero_contact','languages_title']) assert.equal([...d.querySelectorAll('[data-path]')].some(n=>n.dataset.path===JSON.stringify(['pt',key])),false);
-  d.querySelector('[data-tab="education"]').click();assert.equal(d.querySelector('textarea'),null);assert.ok(d.querySelector('[data-delete]'));
+  d.querySelector('[data-section="education"]').click();assert.equal(d.querySelector('#panel textarea'),null);assert.ok(d.querySelector('[data-delete]'));
   d.querySelector('[data-add]').click();
   const title=[...d.querySelectorAll('textarea')].find(n=>n.dataset.path.endsWith(',"title","pt"]'));assert.ok(title);
   title.value='Nova formação';title.dispatchEvent(new w.Event('input',{bubbles:true}));
-  d.querySelector('[data-finish-education]').click();assert.equal(d.querySelector('textarea'),null);
+  d.querySelector('[data-finish-education]').click();assert.equal(d.querySelector('#panel textarea'),null);
   assert.match(d.querySelector('#panel').textContent,/Nova formação/);
   page.window.close();dom.window.close();
 });
