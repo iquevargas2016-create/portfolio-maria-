@@ -11,10 +11,8 @@
 // code. Each collection is rendered here from scratch on every
 // language change.
 //
-// Auto-detects the visitor's language from their country
-// (IP-based), falling back to their browser language, with a
-// manual switcher that always wins and is remembered for next
-// time.
+// Uses the visitor’s saved preference or browser language.
+// A manual choice is remembered without changing language mid-read.
 // ---------------------------------------------------------
 
 (function () {
@@ -23,22 +21,8 @@
   var STORAGE_KEY = "preferredLang";
   var SUPPORTED = ["en", "pt", "es"];
 
-  // Countries where Spanish is the/a primary language.
-  var SPANISH_COUNTRIES = [
-    "AR", "ES", "MX", "CO", "CL", "PE", "VE", "EC", "GT", "CU",
-    "BO", "DO", "HN", "PY", "SV", "NI", "CR", "PA", "UY", "PR", "GQ"
-  ];
-
-  function countryToLang(countryCode) {
-    if (!countryCode) return null;
-    var cc = countryCode.toUpperCase();
-    if (cc === "BR" || cc === "PT") return "pt";
-    if (SPANISH_COUNTRIES.indexOf(cc) !== -1) return "es";
-    return "en";
-  }
-
   function browserLangGuess() {
-    var raw = (navigator.language || navigator.userLanguage || "en").toLowerCase();
+    var raw = ((navigator.languages && navigator.languages[0]) || navigator.language || "en").toLowerCase();
     if (raw.indexOf("pt") === 0) return "pt";
     if (raw.indexOf("es") === 0) return "es";
     return "en";
@@ -119,7 +103,8 @@
     var periodText = (item && (item.period || item.year || item.date)) || "";
     if (periodText) li.appendChild(el("span", "project-period", periodText));
 
-    var titleText = pick(item && item.title, lang);
+    var fullTitle = pick(item && item.title, lang);
+    var titleText = pick(item && item.display_title, lang) || fullTitle;
     if (titleText) li.appendChild(el("h3", "project-title", titleText));
 
     var subtitleText = pick(item && (item.subtitle || item.venue || item.issuer), lang);
@@ -127,6 +112,14 @@
 
     var descText = pick(item && item.desc, lang);
     if (descText) li.appendChild(el("p", "project-desc", descText));
+
+    if (fullTitle && titleText !== fullTitle) {
+      var details = el("details", "project-details");
+      var label = translations && translations[lang] && translations[lang].project_full_title_label;
+      details.appendChild(el("summary", "", label || "Full academic title"));
+      details.appendChild(el("p", "project-full-title", fullTitle));
+      li.appendChild(details);
+    }
 
     var tags = pickList(item && item.tags, lang);
     if (tags.length) {
@@ -202,42 +195,14 @@
   function renderCollections(lang) {
     if (!collections) return;
     var linkLabel = translations && translations[lang] && translations[lang].credential_link_label;
-    renderList("projects-list", null, collections.projects, lang, { linkLabel: linkLabel });
+    var dict = translations[lang] || translations.en;
+    renderList("projects-list", null, collections.projects, lang, { linkLabel: dict.project_link_label });
     renderEducationList(lang);
     // Certificates and Publications now live inside the Education section
     // as sub-blocks that only appear once Maria has added at least one item.
     renderList("certificates-list", "education-certificates-block", collections.certificates, lang, { linkLabel: linkLabel });
-    renderList("publications-list", "education-publications-block", collections.publications, lang, { linkLabel: linkLabel });
+    renderList("publications-list", "education-publications-block", collections.publications, lang, { linkLabel: dict.publication_link_label });
     renderLanguages(lang);
-    initScrollReveal();
-  }
-
-  // Education entries, certificates and publications fade/slide into view
-  // as the visitor scrolls through the Education section, rather than all
-  // appearing at once. Re-run after every render since the lists are
-  // rebuilt from scratch (innerHTML = "") on every language switch/save.
-  var revealObserver = null;
-  function initScrollReveal() {
-    var educationSection = document.getElementById("education");
-    if (!educationSection) return;
-    var items = educationSection.querySelectorAll(".project-card, .education-item");
-    if (!("IntersectionObserver" in window)) {
-      items.forEach(function (el) { el.classList.add("reveal-item", "is-visible"); });
-      return;
-    }
-    if (revealObserver) revealObserver.disconnect();
-    revealObserver = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) {
-          entry.target.classList.add("is-visible");
-          revealObserver.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.15, rootMargin: "0px 0px -40px 0px" });
-    items.forEach(function (el) {
-      el.classList.add("reveal-item");
-      revealObserver.observe(el);
-    });
   }
 
   // Builds one full <section> for a Maria-created custom "topic" —
@@ -295,8 +260,27 @@
       if (dict[key] != null) el.textContent = dict[key];
     });
     document.documentElement.setAttribute("lang", lang);
+    document.querySelectorAll("[data-i18n-aria]").forEach(function (node) {
+      var label = dict[node.getAttribute("data-i18n-aria")];
+      if (label) node.setAttribute("aria-label", label);
+    });
+    var title = "Maria Eduarda Miranda — " + dict.eyebrow + " | Fundación H. A. Barceló";
+    var description = "Maria Eduarda Miranda. " + dict.summary;
+    document.title = title;
+    ["meta[name='description']", "meta[property='og:description']", "meta[name='twitter:description']"].forEach(function (selector) {
+      var meta = document.querySelector(selector);
+      if (meta) meta.setAttribute("content", description);
+    });
+    ["meta[property='og:title']", "meta[name='twitter:title']"].forEach(function (selector) {
+      var meta = document.querySelector(selector);
+      if (meta) meta.setAttribute("content", title);
+    });
+    var locale = document.querySelector("meta[property='og:locale']");
+    if (locale) locale.setAttribute("content", { en: "en_US", pt: "pt_BR", es: "es_AR" }[lang]);
     document.querySelectorAll(".lang-btn").forEach(function (btn) {
-      btn.classList.toggle("is-active", btn.getAttribute("data-lang") === lang);
+      var active = btn.getAttribute("data-lang") === lang;
+      btn.classList.toggle("is-active", active);
+      btn.setAttribute("aria-pressed", String(active));
     });
 
     // Email/phone are editable values (same across languages), so the
@@ -318,7 +302,8 @@
 
   function getSavedLang() {
     try {
-      return localStorage.getItem(STORAGE_KEY);
+      var saved = localStorage.getItem(STORAGE_KEY);
+      return SUPPORTED.indexOf(saved) !== -1 ? saved : null;
     } catch (e) {
       return null;
     }
@@ -351,21 +336,7 @@
       var saved = getSavedLang();
       applyLanguage(saved || browserLangGuess());
 
-      // 2) If the visitor hasn't manually chosen a language before,
-      //    refine the guess using their country (IP-based geolocation),
-      //    in case it's more accurate than their browser/OS setting.
-      if (!saved) {
-        fetch("https://ipapi.co/json/", { cache: "no-store" })
-          .then(function (r) { return r.ok ? r.json() : null; })
-          .then(function (geo) {
-            if (!geo || getSavedLang()) return; // a manual choice may have happened meanwhile
-            var lang = countryToLang(geo.country_code);
-            if (lang) applyLanguage(lang);
-          })
-          .catch(function () {
-            /* geolocation lookup failed/blocked — keep the browser-language guess */
-          });
-      }
+
     })
     .catch(function () {
       /* content.json failed to load — page keeps its hardcoded English fallback text */

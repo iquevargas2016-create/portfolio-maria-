@@ -1,33 +1,32 @@
-// Smooth scroll for the in-page nav links (Contact / Projects / Education).
-document.querySelectorAll('a[href^="#"]').forEach((link) => {
-  link.addEventListener('click', (e) => {
-    const target = document.querySelector(link.getAttribute('href'));
-    if (!target) return;
-    e.preventDefault();
-    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  });
-});
-
-// ---------------------------------------------------------
-// Custom analytics events (Vercel Web Analytics is already
-// loaded via window.va — this just tracks the interactions
-// that actually matter for a portfolio: did the visitor try
-// to make contact, and in which language did they read it.
-// ---------------------------------------------------------
-function track(name, data) {
-  if (typeof window.va === 'function') {
-    window.va('event', data ? { name, data } : { name });
+// Preserve native anchor URLs and keyboard navigation. CSS handles smooth
+// scrolling and honors reduced-motion preferences.
+(function () {
+  var header = document.querySelector(".site-header");
+  function updateHeaderHeight() {
+    if (header) document.documentElement.style.setProperty("--header-height", header.getBoundingClientRect().height + "px");
   }
-}
+  updateHeaderHeight();
+  if (header && "ResizeObserver" in window) {
+    new ResizeObserver(updateHeaderHeight).observe(header);
+  } else {
+    window.addEventListener("resize", updateHeaderHeight);
+  }
 
-var emailLink = document.querySelector('a[href^="mailto:"]');
-if (emailLink) emailLink.addEventListener('click', () => track('contact_email_click'));
+  function track(name, data) {
+    if (typeof window.va === "function") {
+      window.va("event", data ? { name: name, data: data } : { name: name });
+    }
+  }
 
-var phoneLink = document.querySelector('a[href^="tel:"]');
-if (phoneLink) phoneLink.addEventListener('click', () => track('contact_phone_click'));
-
-document.querySelectorAll('.lang-btn').forEach(function (btn) {
-  btn.addEventListener('click', function () {
-    track('language_switch', { lang: btn.getAttribute('data-lang') });
+  document.addEventListener("click", function (event) {
+    var link = event.target.closest("a");
+    if (link) {
+      var href = link.getAttribute("href") || "";
+      if (href.indexOf("mailto:") === 0) track("contact_email_click");
+      if (href.indexOf("tel:") === 0) track("contact_phone_click");
+      if (link.closest(".hero-actions") && href === "#projects") track("research_click");
+    }
+    var languageButton = event.target.closest(".lang-btn");
+    if (languageButton) track("language_switch", { lang: languageButton.getAttribute("data-lang") });
   });
-});
+})();
