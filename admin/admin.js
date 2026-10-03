@@ -66,9 +66,10 @@
     const path = paths[LANGS.indexOf(state.editLang)];
     return `<div class="field-group"><label>${esc(label)}<textarea rows="${path.includes('summary') || path.includes('desc') ? 4 : 2}" data-path="${encoded(path)}" data-translate="true" ${tags ? 'data-tags="true"' : ''} maxlength="12000">${esc(valueText(get(path)))}</textarea></label>${state.tab==='visual'?`<button data-see-preview="${encoded(path)}">Ver na prévia</button>`:''}</div>`;
   }
-  let translating = false, translationTimer;
+  let translating = false, translationTimer, translationFailures=0;
   function pending() { return state.content.editorial.translationPending ||= {}; }
   function markTranslation(path) {
+    translationFailures=0;
     const paths = groupPaths(path), key = JSON.stringify(paths);
     const field = path[0] === 'collections' ? path.at(-2) : path[1];
     if (['contact_email_value','contact_phone_value','contact_location_value'].includes(field)) { for (const target of paths) set(target,clone(get(path))); delete pending()[key]; return; }
@@ -91,8 +92,8 @@
         delete pending()[key]; saveDraft();
       }
       $('#draft-status').textContent = Object.keys(pending()).length ? 'Traduções pendentes' : 'Salvo nos três idiomas';
-    } catch { failed = true; $('#draft-status').textContent = 'Texto salvo · tradução pendente'; toast('A tradução não terminou. Seu texto está salvo. Você pode tentar novamente.'); }
-    finally { translating = false; if (!failed && Object.keys(pending()).length) translationTimer = setTimeout(translatePending, 1200); }
+    } catch { failed = true;translationFailures++; $('#draft-status').textContent = 'Texto salvo · tradução pendente'; if(translationFailures>=3)toast('A tradução está indisponível. Seu texto está salvo; volte mais tarde para concluir antes de publicar.'); }
+    finally { translating = false; if(!failed)translationFailures=0; if(Object.keys(pending()).length && (!failed || (translationFailures<3 && state.token))) translationTimer = setTimeout(translatePending, failed?translationFailures*5000:1200); }
   }
   const topGroup = key => fieldGroup(labels[key] || 'Texto do site', LANGS.map(l => [l, key]));
   const translatedGroup = (path, field) => fieldGroup(labels[field] || 'Informação', LANGS.map(l => [...path, field, l]), { tags: field === 'tags' });
@@ -118,7 +119,7 @@
     contact:'Aqui ficam os meios de contato que aparecem publicamente no site. Você pode mudar o email e a localização ou adicionar um link, como LinkedIn. Isso não muda a caixa que recebe as mensagens do formulário.',
     languages:'Esta lista mostra os idiomas que você fala e seu nível em cada um. Ela vem do perfil atual. Adicionar, mudar ou excluir um idioma altera essa lista; não muda o idioma da tela. Confira antes de publicar.'
   };
-  function heading(title, lead, action = '') { return `<div class="panel-heading"><div><h1>${title}</h1><p class="panel-lead">${lead}</p>${areaHelp[state.tab]?`<p class="area-help">${areaHelp[state.tab]}</p>`:''}${['visual','profile','projects','education','publications','certificates','custom'].includes(state.tab) ? `<label class="editor-language">Idioma de edição<select id="edit-language">${LANGS.map(l => `<option value="${l}" ${l === state.editLang ? 'selected' : ''}>${{pt:'Português',en:'English',es:'Español'}[l]}</option>`).join('')}</select></label><p class="hint">Edite uma vez. As outras versões serão traduzidas automaticamente.</p><button type="button" id="retry-translations">Atualizar traduções</button>` : ''}</div>${action}</div>`; }
+  function heading(title, lead, action = '') { return `<div class="panel-heading"><div><h1>${title}</h1><p class="panel-lead">${lead}</p>${areaHelp[state.tab]?`<p class="area-help">${areaHelp[state.tab]}</p>`:''}${['visual','profile','projects','education','publications','certificates','custom'].includes(state.tab) ? `<label class="editor-language">Idioma de edição<select id="edit-language">${LANGS.map(l => `<option value="${l}" ${l === state.editLang ? 'selected' : ''}>${{pt:'Português',en:'English',es:'Español'}[l]}</option>`).join('')}</select></label><p class="hint">Edite uma vez. As outras versões serão traduzidas automaticamente.</p>` : ''}</div>${action}</div>`; }
   function render() {
     $('#navigation').innerHTML = Object.entries(sections).filter(([id])=>['visual','preview','history','opportunities','analytics','assistant'].includes(id)).map(([id, title]) => `<button data-tab="${id}" class="${state.tab === id ? 'active' : ''}" ${state.tab === id ? 'aria-current="page"' : ''}>${title}</button>`).join('');
     const panel = $('#panel');
@@ -374,7 +375,7 @@
     if (valueText(get(targetPath())) !== originalAtOpen) { $('#ai-error').textContent = 'O texto mudou enquanto você revisava. Feche e abra o editor novamente.'; return; }
     set(targetPath(), aiTags ? result.split('\n').map(t => t.trim()).filter(Boolean) : result); saveDraft(); $('#ai-dialog').close(); render(); toast('Sugestão aplicada ao rascunho. Marque a tradução como revisada quando terminar.');
   });
-  $('#panel').addEventListener('click', event => { if (event.target.id === 'retry-translations') translatePending(); });
+  window.addEventListener('online',()=>{if(!demo && state.content && state.token){translationFailures=0;translatePending();}});
   $('#publish').addEventListener('click', () => {
     if (!state.canPublish) return;
     if (translating || Object.keys(pending()).length) { translatePending(); toast('Aguarde a tradução antes de publicar.'); return; }
