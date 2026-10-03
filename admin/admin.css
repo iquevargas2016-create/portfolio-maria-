@@ -34,3 +34,5 @@ html[data-admin-theme="dark"] .login-wrap,html[data-admin-theme="dark"] .preview
 html[data-admin-theme="dark"] a{color:#b9d7ed}html[data-admin-theme="dark"] .toast{background:#b9d7ed;color:#102030}
 
 .preview-device-control{max-width:250px;margin-block:1rem}
+
+#op-add{display:grid;gap:1rem;margin-block:1.5rem;padding-block:1.2rem;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}#op-add button{justify-self:start;margin-top:.3rem}.area-help{font-size:.85rem;line-height:1.65;color:var(--muted);max-width:65rem;padding:.9rem 1rem;background:#edf2f6;border-radius:8px}html[data-admin-theme="dark"] .area-help{background:#1d2a38;color:#bdcbd8}
