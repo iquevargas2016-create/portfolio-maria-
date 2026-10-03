@@ -32,3 +32,5 @@ html[data-admin-theme="dark"] .sidebar nav button.active{background:#293b4e;colo
 html[data-admin-theme="dark"] .environment-note,html[data-admin-theme="dark"] .draft-warning{background:#332918;color:#f2d5a0}
 html[data-admin-theme="dark"] .login-wrap,html[data-admin-theme="dark"] .preview-wrap{background:#0e1721}
 html[data-admin-theme="dark"] a{color:#b9d7ed}html[data-admin-theme="dark"] .toast{background:#b9d7ed;color:#102030}
+
+.preview-device-control{max-width:250px;margin-block:1rem}
