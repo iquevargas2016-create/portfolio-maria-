@@ -4,7 +4,7 @@
   const demo = new URLSearchParams(location.search).get('demo') === '1';
   const KEY = `maria-draft-v2${demo ? '-demo' : ''}`;
   const LANGS = ['pt', 'en', 'es'];
-  const fixedContactLabels = new Set(['contact_email_label', 'contact_location_label']);
+  const fixedContactLabels = new Set(['contact_email_label', 'contact_location_label', 'hero_research', 'hero_contact', 'languages_title']);
   const clone = value => structuredClone(value);
   const state = { token: '', content: null, published: null, revision: '', photo: null, tab: 'visual', canPublish: false, ai: false, previewed: '', previewLang: 'pt', previewType: 'home', previewSource: 'draft', mobile: false, editLang: 'pt' };
   let previewAssets;
@@ -93,8 +93,9 @@
   const translatedGroup = (path, field) => fieldGroup(labels[field] || 'Informação', LANGS.map(l => [...path, field, l]), { tags: field === 'tags' });
   const simpleField = (label, path, type = 'text') => `<label>${esc(label)}<input type="${type}" data-path="${encoded(path)}" value="${esc(get(path) || '')}" maxlength="500"></label>`;
   function itemEditor(item, path, index, size, kind) {
+    if(kind==='education' && !(state.content.editorial.educationDrafts || []).includes(item.id)) return `<article class="card"><h2 data-user-text>${esc(V.text(item.title,state.editLang))}</h2><p data-user-text>${esc(item.period || '')} · ${esc(V.text(item.subtitle,state.editLang))}</p><p data-user-text>${esc(V.text(item.desc,state.editLang))}</p><p class="hint">Para corrigir esta formação, exclua e adicione novamente.</p><button class="danger" data-delete="${encoded(path)}">Excluir formação</button></article>`;
     const fields = ['title', ...(kind === 'projects' ? ['display_title'] : []), kind === 'publications' ? 'venue' : kind === 'certificates' ? 'issuer' : 'subtitle', 'desc', 'tags'];
-    return `<article class="card"><div class="item-heading"><h2 data-user-text>${esc(V.text(item.display_title || item.title, state.editLang) || `Novo item ${index + 1}`)}</h2><div class="item-actions"><button data-move="${encoded(path)}" data-direction="-1" ${index === 0 ? 'disabled' : ''} aria-label="Mover para cima">↑</button><button data-move="${encoded(path)}" data-direction="1" ${index === size - 1 ? 'disabled' : ''} aria-label="Mover para baixo">↓</button><button class="danger" data-delete="${encoded(path)}">Excluir</button></div></div><div class="plain-grid controls">${simpleField('Período / ano', [...path, 'period'])}${simpleField('Link de referência (opcional)', [...path, 'link'], 'url')}</div><details ${index === 0 ? 'open' : ''}><summary>Editar informações</summary>${fields.map(f => translatedGroup(path, f)).join('')}</details></article>`;
+    return `<article class="card"><div class="item-heading"><h2 data-user-text>${esc(V.text(item.display_title || item.title, state.editLang) || `Novo item ${index + 1}`)}</h2><div class="item-actions"><button data-move="${encoded(path)}" data-direction="-1" ${index === 0 ? 'disabled' : ''} aria-label="Mover para cima">↑</button><button data-move="${encoded(path)}" data-direction="1" ${index === size - 1 ? 'disabled' : ''} aria-label="Mover para baixo">↓</button><button class="danger" data-delete="${encoded(path)}">Excluir</button></div></div><div class="plain-grid controls">${simpleField('Período / ano', [...path, 'period'])}${simpleField('Link de referência (opcional)', [...path, 'link'], 'url')}</div><details ${index === 0 ? 'open' : ''}><summary>Editar informações</summary>${fields.map(f => translatedGroup(path, f)).join('')}</details>${kind==='education'?`<button class="primary" data-finish-education="${encoded(path)}">Concluir formação</button>`:''}</article>`;
   }
   function heading(title, lead, action = '') { return `<div class="panel-heading"><div><h1>${title}</h1><p class="panel-lead">${lead}</p>${['visual','profile','projects','education','publications','certificates','custom'].includes(state.tab) ? `<label class="editor-language">Idioma de edição<select id="edit-language">${LANGS.map(l => `<option value="${l}" ${l === state.editLang ? 'selected' : ''}>${{pt:'Português',en:'English',es:'Español'}[l]}</option>`).join('')}</select></label><p class="hint">Edite uma vez. As outras versões serão traduzidas automaticamente.</p><button type="button" id="retry-translations">Atualizar traduções</button>` : ''}</div>${action}</div>`; }
   function render() {
@@ -149,7 +150,7 @@
   }
   function editablePreview(html) {
     const doc = new DOMParser().parseFromString(html,'text/html'), candidates = [];
-    const add = path => { const value=get(path); if(typeof value==='string' && value.trim()) candidates.push({path,value:value.trim()}); };
+    const add = path => { if(path[0]==='collections' && path[1]==='education' && !(state.content.editorial.educationDrafts || []).includes(get(['collections','education',path[2]])?.id)) return; const value=get(path); if(typeof value==='string' && value.trim()) candidates.push({path,value:value.trim()}); };
     Object.keys(state.content[state.editLang]).filter(k=>!fixedContactLabels.has(k) && !k.startsWith('contact_phone')).forEach(k=>add([state.editLang,k]));
     function walk(value,path) { if(!value || typeof value!=='object') return; if(Object.hasOwn(value,state.editLang)) { add([...path,state.editLang]); return; } Object.entries(value).forEach(([k,v])=>walk(v,[...path,Array.isArray(value)?Number(k):k])); }
     walk(state.content.collections,['collections']); visualPaths=[];
@@ -285,6 +286,7 @@
   const newItem = () => ({ id: `item-${crypto.randomUUID()}`, period: '', title: { pt: '', en: '', es: '' }, subtitle: { pt: '', en: '', es: '' }, desc: { pt: '', en: '', es: '' }, link: '', tags: { pt: [], en: [], es: [] } });
   $('#panel').addEventListener('click', async event => {
     const b = event.target.closest('button'); if (!b) return;
+    if(b.dataset.finishEducation){const path=JSON.parse(b.dataset.finishEducation),item=get(path);if(!V.text(item.title,state.editLang).trim()){toast('Preencha o título da formação antes de concluir.');return;}state.content.editorial.educationDrafts=(state.content.editorial.educationDrafts || []).filter(id=>id!==item.id);saveDraft();render();return;}
     if(b.id==='visual-reset-colors'){const order=state.content.appearance?.order;state.content.appearance=order?{order}:{};saveDraft();render();return;}
     if(b.id==='visual-done'){updatePreview();$('#visual-edit').innerHTML='<h2>Alteração guardada no rascunho.</h2><p>Escolha outra parte do site para continuar.</p>';return;}
     if(b.id==='visual-save' && visualSelection) { set(visualSelection,$('#visual-text').value);markTranslation(visualSelection);saveDraft();updatePreview();toast('Alteração guardada no rascunho.');return; }
@@ -292,11 +294,11 @@
     if(b.dataset.sectionIndex) { const order=state.content.appearance?.order || ['projects','education',...state.content.collections.custom_sections.map((_,i)=>`custom-${i}`),'contact']; const i=Number(b.dataset.sectionIndex),j=i+Number(b.dataset.step);if(j>=0&&j<order.length){[order[i],order[j]]=[order[j],order[i]];state.content.appearance ||= {};state.content.appearance.order=order;saveDraft();render();}return; }
     if (b.dataset.editAi) return openAI(JSON.parse(b.dataset.editAi), !!b.dataset.tags);
     if (b.dataset.reviewed) { const path = JSON.parse(b.dataset.reviewed); state.content.editorial.translationReview[path.join('.')] = fingerprint(path); saveDraft(); const badge = b.closest('.field-tools').previousElementSibling.querySelector('.badge'); badge.textContent = 'Revisado'; badge.classList.add('reviewed'); return; }
-    if (b.dataset.add) { const path = JSON.parse(b.dataset.add), list = get(path); const item = newItem(); if (path[1] === 'projects') item.slug = item.id; list.push(item); saveDraft(); render(); }
+    if (b.dataset.add) { const path = JSON.parse(b.dataset.add), list = get(path); const item = newItem(); if (path[1] === 'projects') item.slug = item.id; list.push(item); if(path[1]==='education'){state.content.editorial.educationDrafts ||= [];state.content.editorial.educationDrafts.push(item.id);state.tab='education';} saveDraft(); render(); }
     if (b.hasAttribute('data-add-language')) { state.content.collections.languages.push({ code: 'en', level: 'basic' }); saveDraft(); render(); }
     if (b.hasAttribute('data-add-section')) { state.content.collections.custom_sections.push({ title: { pt: '', en: '', es: '' }, lead: { pt: '', en: '', es: '' }, items: [] }); saveDraft(); render(); }
     if ((b.dataset.move || b.dataset.delete) && (translating || Object.keys(pending()).length)) { toast('Conclua as traduções antes de mover ou excluir este item.'); return; }
-    if (b.dataset.delete && confirm(window.AdminI18n?.text('Excluir do rascunho? A versão publicada não muda agora.') || 'Excluir do rascunho? A versão publicada não muda agora.')) { const path = JSON.parse(b.dataset.delete); get(path.slice(0, -1)).splice(path.at(-1), 1); saveDraft(); render(); }
+    if (b.dataset.delete && confirm(window.AdminI18n?.text('Excluir do rascunho? A versão publicada não muda agora.') || 'Excluir do rascunho? A versão publicada não muda agora.')) { const path = JSON.parse(b.dataset.delete); const removed=get(path);get(path.slice(0, -1)).splice(path.at(-1), 1); if(path[1]==='education')state.content.editorial.educationDrafts=(state.content.editorial.educationDrafts || []).filter(id=>id!==removed.id); saveDraft(); render(); }
     if (b.dataset.move) { const path = JSON.parse(b.dataset.move), list = get(path.slice(0, -1)), i = path.at(-1), j = i + Number(b.dataset.direction); if (j >= 0 && j < list.length) { [list[i], list[j]] = [list[j], list[i]]; saveDraft(); render(); } }
     if (b.id === 'preview-device') { state.mobile = !state.mobile; render(); }
     if (b.hasAttribute('data-test-assistant')) { state.tab = 'preview'; state.previewType = 'home'; state.previewSource = 'draft'; render(); toast('Na prévia, toque em “Ativar para testar”, no canto inferior direito.'); }

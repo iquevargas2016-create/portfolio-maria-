@@ -97,3 +97,18 @@ test('visual editor selects only known text, saves a draft, switches all UI and 
   assert.equal(d.querySelector('#publish').disabled,true);assert.ok(requests.every(url=>!url.startsWith('/api/')));
   page.window.close();dom.window.close();
 });
+
+test('fixed labels cannot be selected and education can only be added, completed or deleted', async () => {
+  const {dom,d,w}=await admin();
+  const page=new JSDOM(d.querySelector('iframe').srcdoc);
+  for(const node of page.window.document.querySelectorAll('.contact-label,.hero-actions a:first-child,.hero-actions a:last-child')) assert.equal(node.hasAttribute('data-visual-id'),false);
+  d.querySelector('[data-tab="profile"]').click();
+  for(const key of ['contact_email_label','contact_location_label','hero_research','hero_contact','languages_title']) assert.equal([...d.querySelectorAll('[data-path]')].some(n=>n.dataset.path===JSON.stringify(['pt',key])),false);
+  d.querySelector('[data-tab="education"]').click();assert.equal(d.querySelector('textarea'),null);assert.ok(d.querySelector('[data-delete]'));
+  d.querySelector('[data-add]').click();
+  const title=[...d.querySelectorAll('textarea')].find(n=>n.dataset.path.endsWith(',"title","pt"]'));assert.ok(title);
+  title.value='Nova formação';title.dispatchEvent(new w.Event('input',{bubbles:true}));
+  d.querySelector('[data-finish-education]').click();assert.equal(d.querySelector('textarea'),null);
+  assert.match(d.querySelector('#panel').textContent,/Nova formação/);
+  page.window.close();dom.window.close();
+});
