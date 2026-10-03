@@ -74,46 +74,98 @@
 
 <header class="site-header">
   <div class="container header-inner">
-    <div class="brand">Maria Eduarda Miranda</div>
-    <nav class="site-nav" aria-label="Sections">
+    <a class="brand" href="#main">Maria Eduarda Miranda</a>
+    <nav class="site-nav" aria-label="Sections" data-i18n-aria="nav_label">
       <ul>
-        <li><a href="#contact" data-i18n="nav_contact">Contact</a></li>
-        <li><a href="#projects" data-i18n="nav_projects">Projects</a></li>
+        <li><a href="#projects" data-i18n="nav_projects">Research</a></li>
         <li><a href="#education" data-i18n="nav_education">Education</a></li>
+        <li><a href="#contact" data-i18n="nav_contact">Contact</a></li>
       </ul>
     </nav>
-    <div class="lang-switch" role="group" aria-label="Language selector">
-      <button type="button" class="lang-btn" data-lang="en">EN</button>
-      <button type="button" class="lang-btn" data-lang="pt">PT</button>
-      <button type="button" class="lang-btn" data-lang="es">ES</button>
+    <div class="lang-switch" role="group" aria-label="Language selector" data-i18n-aria="language_label">
+      <button type="button" class="lang-btn" data-lang="en" aria-label="English" aria-pressed="true">EN</button>
+      <button type="button" class="lang-btn" data-lang="pt" aria-label="Português" aria-pressed="false">PT</button>
+      <button type="button" class="lang-btn" data-lang="es" aria-label="Español" aria-pressed="false">ES</button>
     </div>
   </div>
 </header>
 
-<main id="main">
+<main id="main" tabindex="-1">
 
-  <section class="hero">
+  <section class="hero" aria-labelledby="hero-name">
     <div class="container hero-inner">
-      <div class="photo-frame">
-        <img src="photo.jpg" alt="Maria Eduarda Miranda">
-      </div>
       <div class="hero-text">
         <span class="eyebrow" data-i18n="eyebrow">Medical Student</span>
-        <h1 class="name">Maria Eduarda Miranda</h1>
-        <p class="institution" data-i18n="institution">Fundación H. A. Barceló — Buenos Aires, Argentina</p>
-        <p class="graduation" data-i18n="graduation">Expected graduation: 2028</p>
-        <p class="summary" data-i18n="summary">
-          Fifth-year medical student interested in electroporation-based cancer
-          treatments and translational research, with a focus on improving
-          electrochemotherapy through experimental research.
-        </p>
+        <h1 class="name" id="hero-name">Maria Eduarda Miranda</h1>
+        <p class="summary" data-i18n="summary">Fifth-year medical student focused on experimental research in electrochemotherapy, with an interest in translational oncology.</p>
+        <div class="hero-affiliation">
+          <p class="institution" data-i18n="institution">Fundación H. A. Barceló — Buenos Aires, Argentina</p>
+          <p class="graduation" data-i18n="graduation">Expected graduation: 2028</p>
+        </div>
+        <div class="hero-actions">
+          <a class="button button-primary" href="#projects"><span data-i18n="hero_research">Explore research</span><span aria-hidden="true">↗</span></a>
+          <a class="button button-secondary" href="#contact" data-i18n="hero_contact">Get in touch</a>
+        </div>
+      </div>
+      <div class="photo-frame">
+        <img src="photo.jpg" alt="Maria Eduarda Miranda" width="1023" height="1537" fetchpriority="high" decoding="async">
       </div>
     </div>
   </section>
 
-  <section id="contact" class="section">
+  <section id="projects" class="section section-alt" tabindex="-1" aria-labelledby="projects-heading">
     <div class="container">
-      <h2 class="section-title" data-i18n="contact_title">Contact</h2>
+      <div class="section-heading"><span class="section-number" aria-hidden="true">01</span><h2 id="projects-heading" class="section-title" data-i18n="projects_title">Research & Projects</h2></div>
+      <p class="section-lead" data-i18n="projects_lead">Experimental research in electrochemotherapy alongside medical training.</p>
+
+      <!-- Populated dynamically from content.json (collections.projects) by i18n.js -->
+      <ul id="projects-list" class="project-grid"></ul>
+    </div>
+  </section>
+
+  <!-- Education, certificates, publications and languages all live inside
+       this one section now, so everything Maria adds "grows" in the same
+       place instead of spawning separate nav-linked sections. Certificates
+       and Publications only appear once they have at least one item. -->
+  <section id="education" class="section" tabindex="-1" aria-labelledby="education-heading">
+    <div class="container">
+      <div class="section-heading"><span class="section-number" aria-hidden="true">02</span><h2 id="education-heading" class="section-title" data-i18n="education_title">Education</h2></div>
+
+      <!-- Populated dynamically from content.json (collections.education) by i18n.js -->
+      <div class="education-layout">
+        <ul id="education-list" class="education-list"></ul>
+        <aside class="languages-panel" aria-labelledby="languages-heading">
+          <h3 id="languages-heading" class="sub-title" data-i18n="languages_title">Languages</h3>
+          <ul id="languages-list" class="language-list"></ul>
+        </aside>
+      </div>
+
+      <div id="education-certificates-block" hidden>
+        <h3 class="sub-title" data-i18n="certificates_title">Certificates &amp; Courses</h3>
+        <p class="sub-lead" data-i18n="certificates_lead">Courses, certifications, and extracurricular training completed alongside the medical programme.</p>
+        <!-- Populated dynamically from content.json (collections.certificates) by i18n.js -->
+        <ul id="certificates-list" class="project-grid"></ul>
+      </div>
+
+      <div id="education-publications-block" hidden>
+        <h3 class="sub-title" data-i18n="publications_title">Publications &amp; Academic Work</h3>
+        <p class="sub-lead" data-i18n="publications_lead">Articles, papers, and academic work produced during the medical programme.</p>
+        <!-- Populated dynamically from content.json (collections.publications) by i18n.js -->
+        <ul id="publications-list" class="project-grid"></ul>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Fully custom sections Maria can create herself from the admin panel
+       (collections.custom_sections). Built entirely by i18n.js — each one
+       only appears once it has at least one item. Not added to the nav
+       menu above, since the list can grow to any length. -->
+  <div id="custom-sections-container"></div>
+
+  <section id="contact" class="section section-contact" tabindex="-1" aria-labelledby="contact-heading">
+    <div class="container">
+      <div class="section-heading"><span class="section-number" aria-hidden="true">03</span><h2 id="contact-heading" class="section-title" data-i18n="contact_title">Let’s connect</h2></div>
       <p class="section-lead" data-i18n="contact_lead">Interested in research collaborations, academic opportunities, and professional networking.</p>
 
       <ul class="contact-grid">
@@ -153,53 +205,6 @@
       </ul>
     </div>
   </section>
-
-  <section id="projects" class="section section-alt">
-    <div class="container">
-      <h2 class="section-title" data-i18n="projects_title">Projects &amp; Involvement</h2>
-      <p class="section-lead" data-i18n="projects_lead">Academic, research and volunteer work carried out alongside the medical programme.</p>
-
-      <!-- Populated dynamically from content.json (collections.projects) by i18n.js -->
-      <ul id="projects-list" class="project-grid"></ul>
-    </div>
-  </section>
-
-  <!-- Education, certificates, publications and languages all live inside
-       this one section now, so everything Maria adds "grows" in the same
-       place instead of spawning separate nav-linked sections. Certificates
-       and Publications only appear once they have at least one item. -->
-  <section id="education" class="section">
-    <div class="container">
-      <h2 class="section-title" data-i18n="education_title">Education</h2>
-
-      <!-- Populated dynamically from content.json (collections.education) by i18n.js -->
-      <ul id="education-list" class="education-list"></ul>
-
-      <div id="education-certificates-block" hidden>
-        <h3 class="sub-title" data-i18n="certificates_title">Certificates &amp; Courses</h3>
-        <p class="sub-lead" data-i18n="certificates_lead">Courses, certifications, and extracurricular training completed alongside the medical programme.</p>
-        <!-- Populated dynamically from content.json (collections.certificates) by i18n.js -->
-        <ul id="certificates-list" class="project-grid"></ul>
-      </div>
-
-      <div id="education-publications-block" hidden>
-        <h3 class="sub-title" data-i18n="publications_title">Publications &amp; Academic Work</h3>
-        <p class="sub-lead" data-i18n="publications_lead">Articles, papers, and academic work produced during the medical programme.</p>
-        <!-- Populated dynamically from content.json (collections.publications) by i18n.js -->
-        <ul id="publications-list" class="project-grid"></ul>
-      </div>
-
-      <h3 class="sub-title" data-i18n="languages_title">Languages</h3>
-      <!-- Populated dynamically from content.json (collections.languages) by i18n.js -->
-      <ul id="languages-list" class="language-list"></ul>
-    </div>
-  </section>
-
-  <!-- Fully custom sections Maria can create herself from the admin panel
-       (collections.custom_sections). Built entirely by i18n.js — each one
-       only appears once it has at least one item. Not added to the nav
-       menu above, since the list can grow to any length. -->
-  <div id="custom-sections-container"></div>
 
 </main>
 
