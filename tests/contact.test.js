@@ -15,7 +15,7 @@ const request = (data = body()) => ({ method: 'POST', headers: { host: 'site.tes
 test.beforeEach(() => { Object.assign(process.env, { CONTACT_EMAIL_ENABLED: 'true', CONTACT_FROM_EMAIL: 'site@mail.example.com', RESEND_API_KEY: 'secret-test-resend', TURNSTILE_SITE_KEY: 'public-site-key', TURNSTILE_SECRET_KEY: 'secret-test-turnstile' }); });
 test.afterEach(() => { global.fetch = originalFetch; for (const key of Object.keys(process.env)) if (!(key in env)) delete process.env[key]; Object.assign(process.env, env); });
 test('contact configuration exposes only the public site key and fails closed without credentials', async () => {
-  const r = result(); await handler({ method: 'GET', headers: {} }, r); assert.deepEqual(r.body, { configured: true, siteKey: 'public-site-key' });
+  const r = result(); await handler({ method: 'GET', headers: {} }, r); assert.deepEqual(r.body, { configured: true, siteKey: 'public-site-key', inboxEnabled: false });
   delete process.env.RESEND_API_KEY; const disabled = result(); await handler(request(), disabled); assert.equal(disabled.code, 503);
 });
 test('contact rejects invalid fields, honeypots and cross-origin requests before contacting providers', async () => {

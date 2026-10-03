@@ -14,7 +14,7 @@ function config() {
 
 module.exports = endpoint(async (req, res) => {
   const settings = config();
-  if (req.method === 'GET') return res.status(200).json({ configured: !!settings, ...(settings ? { siteKey: settings.siteKey } : {}) });
+  if (req.method === 'GET') return res.status(200).json({ configured: !!settings, ...(settings ? { siteKey: settings.siteKey, inboxEnabled: process.env.VERCEL_ENV === 'production' && !!require('../lib/inbox').config() } : {}) });
   if (!settings) throw error(503, 'Envio indisponível.');
   // Browser requests must come from this deployment; challenge hostname is checked too.
   let hostname;
@@ -29,6 +29,9 @@ module.exports = endpoint(async (req, res) => {
   const intent = field('intent', 20), language = field('language', 2), token = field('turnstileToken', 2048), requestId = field('requestId', 36);
   if (!emailAddress(email) || /[\r\n\x00-\x1f]/.test(name + email + organization) || !['research', 'academic', 'professional'].includes(intent) || !['pt', 'en', 'es'].includes(language) || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(requestId)) throw error(400, 'Dados inválidos.');
   if (data.website !== '' && data.website != null) throw error(403, 'Não foi possível validar o envio.');
+  const context = data.context == null ? '' : field('context', 180, false);
+  const deadline = data.deadline == null ? '' : field('deadline', 10, false);
+  if (/[\r\n\x00-\x1f]/.test(context) || (deadline && !/^\d{4}-\d{2}-\d{2}$/.test(deadline))) throw error(400, 'Dados inválidos.');
   const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
   rateLimit(`contact:${crypto.createHash('sha256').update(ip || hostname).digest('hex')}`, 5, 600000);
   const verified = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
@@ -42,7 +45,7 @@ module.exports = endpoint(async (req, res) => {
   const mail = {
     from: `Site Maria Miranda <${settings.from}>`, to: [settings.to], reply_to: email,
     subject: `[Site Maria Miranda] ${topics[intent]}`,
-    text: `Nova mensagem pelo site\n\nNome: ${name}\nEmail: ${email}\nInstituição: ${organization || 'Não informada'}\nTipo: ${topics[intent]}\nIdioma do formulário: ${language}\n\n${message}\n\nUse Responder para falar diretamente com o remetente.`
+    text: `Nova mensagem pelo site\n\nNome: ${name}\nEmail: ${email}\nInstituição: ${organization || 'Não informada'}\nTipo: ${topics[intent]}\nIdioma do formulário: ${language}\nTema ou programa: ${context || 'Não informado'}\nPrazo: ${deadline || 'Não informado'}\n\n${message}\n\nUse Responder para falar diretamente com o remetente.`
   };
   const idempotencyKey = 'contact-' + crypto.createHash('sha256').update(JSON.stringify({ requestId, mail })).digest('hex');
   const sent = await fetch('https://api.resend.com/emails', {
@@ -51,6 +54,9 @@ module.exports = endpoint(async (req, res) => {
   if (!sent.ok) throw error(sent.status === 429 ? 429 : 502, 'Não foi possível confirmar o envio.');
   const result = await sent.json();
   if (!result.id) throw error(502, 'Não foi possível confirmar o envio.');
-  // No email body, address or token is logged or persisted by this application.
+  // Optional private inbox; never affects email delivery confirmation.
+  if (process.env.CONTACT_INBOX_ENABLED === 'true' && process.env.VERCEL_ENV === 'production') {
+    try { await require('../lib/inbox').save({ id: requestId, name, email, organization, message, intent, context, deadline, status: 'received', createdAt: new Date().toISOString() }); } catch { /* Email already accepted; do not induce duplicate retries. */ }
+  }
   res.status(200).json({ ok: true });
 }, ['GET', 'POST']);

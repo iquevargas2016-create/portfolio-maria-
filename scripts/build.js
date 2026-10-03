@@ -12,22 +12,25 @@ const assets = ['styles.css', 'site.js', 'photo.jpg', 'photo-placeholder.svg', '
 for (const file of assets) if (fs.existsSync(path.join(root, file))) fs.copyFileSync(path.join(root, file), path.join(output, file));
 for (const dir of ['admin', 'shared']) fs.cpSync(path.join(root, dir), path.join(output, dir), { recursive: true });
 const publicContent = structuredClone(content); delete publicContent.editorial;
+for (const lang of V.LANGS) { delete publicContent[lang].contact_phone_value; delete publicContent[lang].contact_phone_label; }
 write('content.json', JSON.stringify(publicContent));
 function vcard(lang) {
   const d = content[lang];
   const esc = text => String(text).replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
-  const lines = ['BEGIN:VCARD', 'VERSION:3.0', `FN:${V.NAME}`, 'N:Miranda;Maria Eduarda;;;', `TITLE:${esc(d.eyebrow)}`, `ORG:${esc(d.institution)}`, `EMAIL;TYPE=INTERNET:${esc(d.contact_email_value)}`, `TEL;TYPE=CELL:${V.phoneNumber(d.contact_phone_value)}`, `URL:${V.ORIGIN + V.pathFor(lang)}`, 'END:VCARD'];
+  const lines = ['BEGIN:VCARD', 'VERSION:3.0', `FN:${V.NAME}`, 'N:Miranda;Maria Eduarda;;;', `TITLE:${esc(d.eyebrow)}`, `ORG:${esc(d.institution)}`, `EMAIL;TYPE=INTERNET:${esc(d.contact_email_value)}`, `URL:${V.ORIGIN + V.pathFor(lang)}`, 'END:VCARD'];
   return lines.map(line => { let out = '', length = 0; for (const character of line) { const bytes = Buffer.byteLength(character); if (length + bytes > 74) { out += '\r\n '; length = 1; } out += character; length += bytes; } return out; }).join('\r\n') + '\r\n';
 }
 const routes = [];
 const metrics = !!((process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL) && (process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN));
 for (const lang of V.LANGS) {
-  for (const type of ['home', 'cv', 'card']) {
+  for (const type of ['home', 'cv', 'card', 'event']) {
     const route = V.pathFor(lang, type); routes.push(route);
     write(route.slice(1) + 'index.html', V.renderPage(content, { lang, type, preview, metrics }));
   }
   (content.collections.projects || []).forEach((p, i) => { const slug = V.projectSlug(p, i), route = V.pathFor(lang, 'project', slug); routes.push(route); write(route.slice(1) + 'index.html', V.renderPage(content, { lang, type: 'project', slug, preview, metrics })); });
   write(`${lang}/contact.vcf`, vcard(lang));
+  const svg = require('qrcode/lib/renderer/svg-tag').render(require('qrcode').create(V.ORIGIN + V.pathFor(lang, 'event'), { errorCorrectionLevel: 'M' }), { margin: 2, width: 240 });
+  write(`${lang}/profile-qr.svg`, svg);
 }
 write('index.html', V.renderPage(content, { lang: 'en', preview, metrics }));
 write('manifest.webmanifest', JSON.stringify({ id: '/', name: V.NAME, short_name: 'Maria Miranda', start_url: '/', scope: '/', display: 'standalone', background_color: '#ffffff', theme_color: '#0d2542', icons: [{ src: '/android-chrome-192x192.png', sizes: '192x192', type: 'image/png' }, { src: '/android-chrome-512x512.png', sizes: '512x512', type: 'image/png' }] }));
