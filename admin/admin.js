@@ -4,7 +4,7 @@
   const demo = new URLSearchParams(location.search).get('demo') === '1';
   const KEY = `maria-draft-v2${demo ? '-demo' : ''}`;
   const LANGS = ['pt', 'en', 'es'];
-  const fixedContactLabels = new Set(['contact_email_label', 'contact_location_label', 'hero_research', 'hero_contact', 'languages_title']);
+  const fixedContactLabels = new Set(['contact_email_label', 'contact_location_label', 'hero_research', 'hero_contact', 'languages_title', 'nav_projects', 'nav_contact']);
   const clone = value => structuredClone(value);
   const state = { token: '', content: null, published: null, revision: '', photo: null, tab: 'visual', canPublish: false, ai: false, previewed: '', previewLang: 'pt', previewType: 'home', previewSource: 'draft', mobile: false, editLang: 'pt' };
   let previewAssets;
