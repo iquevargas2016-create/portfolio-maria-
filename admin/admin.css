@@ -15,3 +15,5 @@ select{appearance:none;-webkit-appearance:none;padding-right:2.8rem!important;ba
 .visual-layout{display:block}.editing-sections{margin-top:1.5rem}.edit-section{scroll-margin-top:180px}.edit-section>summary{font-size:1rem}.editing-sections .visual-edit{position:static;max-height:none;overflow:visible;scroll-margin-top:180px}.editing-sections .visual-edit:focus{outline:0}
 
 .editing-sections{margin-block:1rem 2rem}.visual-layout{margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--border)}
+
+.preview-disclosure .visual-layout{margin-top:1rem;padding-top:0;border-top:0}
