@@ -23,7 +23,7 @@
     const target = event.target.closest('a,button');
     if (!target) return;
     if (target.dataset.event) track(target.dataset.event);
-    if (target.hasAttribute('data-copy')) { if (await copy(target.dataset.copy)) track('email_copy'); }
+    if (target.hasAttribute('data-copy')) { if (await copy(target.dataset.copy)) track(target.dataset.copy.startsWith('https://') ? 'share' : 'email_copy'); }
     if (target.hasAttribute('data-print')) { track('cv_print'); window.print(); }
     if (target.hasAttribute('data-share')) {
       const url = document.querySelector('link[rel="canonical"]')?.href || `${Portfolio.ORIGIN}${location.pathname}`;
@@ -72,7 +72,7 @@
       if (!navigator.onLine) { say(u.offlineSend); return; }
       if (!token) { say(u.verify); return; }
       const data = new FormData(contact);
-      const payload = Object.fromEntries(['name', 'email', 'organization', 'message', 'intent', 'website'].map(k => [k, String(data.get(k) || '')]));
+      const payload = Object.fromEntries(['name', 'email', 'organization', 'message', 'intent', 'website', 'context', 'deadline'].map(k => [k, String(data.get(k) || '')]));
       payload.language = lang;
       const fingerprint = JSON.stringify(payload);
       if (fingerprint !== previousPayload || !requestId) { requestId = crypto.randomUUID(); previousPayload = fingerprint; }
@@ -119,4 +119,42 @@
       }
     });
   }
+})();
+
+(() => {
+  const u = window.Portfolio.UI[document.body.dataset.lang || 'en'];
+  const search = document.getElementById('research-search'), theme = document.getElementById('research-theme');
+  function filter() {
+    let count = 0;
+    const normalize = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    document.querySelectorAll('#research-results > li').forEach(item => {
+      item.hidden = !normalize(item.textContent).includes(normalize(search.value)) || (theme.value && ![...item.querySelectorAll('.tag')].some(t => t.textContent === theme.value));
+      if (!item.hidden) count++;
+    });
+    document.getElementById('research-empty').hidden = count > 0;
+  }
+  search?.addEventListener('input', filter); theme?.addEventListener('change', filter);
+  const focus = document.getElementById('cv-focus');
+  if (focus) {
+    const main = document.getElementById('main'), projects = document.getElementById('projects'), education = document.getElementById('education');
+    const update = () => {
+      document.querySelectorAll('[data-cv-include]').forEach(input => input.closest('[data-experience]').classList.toggle('cv-excluded', !input.checked));
+      document.getElementById('cv-selection').textContent = `${document.querySelectorAll('[data-cv-include]:checked').length} / ${document.querySelectorAll('[data-cv-include]').length}`;
+    };
+    focus.addEventListener('change', () => {
+      if (focus.value === 'research' || focus.value === 'professional') main.insertBefore(projects, education);
+      else main.insertBefore(education, projects);
+      const url = new URL(location.href); if (focus.value === 'all') url.searchParams.delete('focus'); else url.searchParams.set('focus', focus.value); try { history.replaceState(null, '', url); } catch { /* Sandboxed editor preview has an opaque origin. */ }
+    });
+    const value = new URL(location.href).searchParams.get('focus');
+    if (['all','research','academic','professional'].includes(value)) { focus.value = value; focus.dispatchEvent(new Event('change')); }
+    document.querySelectorAll('[data-cv-include]').forEach(input => input.addEventListener('change', update)); update();
+  }
+  const form = document.getElementById('contact-form');
+  function context() {
+    const intent = form.querySelector('[name=intent]:checked')?.value;
+    const label = form.querySelector('[data-contact-context]');
+    if (label) label.firstChild.textContent = intent === 'academic' ? u.program : intent === 'professional' ? u.program : u.subject;
+  }
+  form?.querySelectorAll('[name=intent]').forEach(input => input.addEventListener('change', context)); if (form) context();
 })();
