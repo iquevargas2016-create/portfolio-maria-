@@ -92,8 +92,8 @@ test('visual editor selects only known text, saves a draft, switches all UI and 
   assert.match(frame.srcdoc,/Novo resumo visual/);
   assert.equal(JSON.parse(w.localStorage.getItem('maria-draft-v2-demo')).content.pt.summary,'Novo resumo visual.');
   const device=d.querySelector('#visual-device');device.value='mobile';device.dispatchEvent(new w.Event('change',{bubbles:true}));assert.ok(d.querySelector('#preview-frame').classList.contains('mobile'));
-  const color=d.querySelector('#visual-color');color.value='#225588';color.dispatchEvent(new w.Event('change',{bubbles:true}));assert.match(d.querySelector('#preview-frame').srcdoc,/--brand:#225588/);
-  const theme=d.querySelector('#visual-theme');theme.value='dark';theme.dispatchEvent(new w.Event('change',{bubbles:true}));assert.match(d.querySelector('#preview-frame').srcdoc,/background:#090b0e/);assert.match(d.querySelector('#preview-frame').srcdoc,/color:#f0f3f6/);
+  const color=d.querySelector('#visual-color');color.value='#225588';color.dispatchEvent(new w.Event('change',{bubbles:true}));assert.equal(JSON.parse(w.localStorage.getItem('maria-draft-v2-demo')).content.appearance.palettes.light.brand,'#225588');
+  const theme=d.querySelector('#visual-theme');theme.value='dark';theme.dispatchEvent(new w.Event('change',{bubbles:true}));assert.equal(JSON.parse(w.localStorage.getItem('maria-draft-v2-demo')).content.appearance.theme,'dark');
   const lang=d.querySelector('#edit-language');lang.value='en';lang.dispatchEvent(new w.Event('change',{bubbles:true}));await settle();
   assert.equal(d.documentElement.lang,'en');assert.equal(d.querySelector('[data-tab="visual"]').textContent,'Edit on the website');assert.equal(d.querySelector('#publish').textContent,'Publish');assert.match(d.querySelector('iframe').srcdoc,/lang="en"/);
   assert.equal(d.querySelector('#publish').disabled,true);assert.ok(requests.every(url=>!url.startsWith('/api/')));
@@ -137,4 +137,10 @@ test('restoring colors preserves panel elements, open disclosures and selected m
  const mode=d.querySelector('#visual-theme');mode.value='dark';mode.dispatchEvent(new w.Event('change',{bubbles:true}));
  const color=d.querySelector('[data-palette="background"]');color.value='#112233';color.dispatchEvent(new w.Event('input',{bubbles:true}));
  d.querySelector('#visual-reset-colors').click();assert.equal(d.querySelector('.visual-settings'),appearance);assert.ok(editor.open&&appearance.open&&preview.open);assert.equal(mode.value,'dark');assert.equal(color.value,'#090b0e');dom.window.close();
+});
+
+test('color changes update styles in place without reloading preview or photo',async()=>{
+ const {dom,d,w}=await admin();const frame=d.querySelector('#preview-frame'),original=frame.srcdoc,messages=[];frame.contentWindow.postMessage=message=>messages.push(message);
+ const color=d.querySelector('[data-palette="background"]');color.value='#ccbbaa';color.dispatchEvent(new w.Event('input',{bubbles:true}));
+ assert.equal(frame.srcdoc,original);assert.equal(messages.at(-1).kind,'maria-appearance');assert.ok(messages.at(-1).css.some(css=>css.includes('#ccbbaa')));dom.window.close();
 });
