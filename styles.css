@@ -233,3 +233,22 @@ label { display: grid; gap: .4rem; font-size: .88rem; font-weight: 500; }
 .cv-builder {display:block}.cv-builder select{max-width:400px}.cv-include{display:block;margin-top:1rem}.cv-excluded{opacity:.45}.experience-share{border:0;background:transparent;color:#244969;cursor:pointer;font:inherit;text-decoration:underline;margin-top:.8rem}.event-qr{display:block;margin:1rem auto}.event-research{text-align:left}.contact-grid{grid-template-columns:repeat(2,minmax(0,1fr))}[hidden]{display:none!important}
 @media print {.cv-excluded{display:none!important}.event-qr{display:block}.site-header,.site-footer{display:none}}
 @media(max-width:600px){.contact-grid{grid-template-columns:1fr}}
+
+/* Visitor theme follows device unless the visitor chooses an override. */
+.theme-toggle{grid-column:2;justify-self:end;border:1px solid var(--border);border-radius:20px;background:var(--bg);color:var(--ink);font:500 .75rem var(--font-sans);padding:.5rem .75rem;min-height:40px;cursor:pointer}
+@media(min-width:1100px){.header-inner{grid-template-columns:minmax(0,1fr) auto auto auto}.theme-toggle{grid-column:auto}}
+@media screen{
+html[data-theme="dark"]{color-scheme:dark;--bg:#090b0e;--surface:#151b23;--ink:#f0f3f6;--ink-muted:#b5c0cd;--brand:#9dc6e6;--brand-strong:#b8daf3;--brand-soft:#253343;--brand-softer:#151b23;--border:#35404c}
+html[data-theme="dark"] body,html[data-theme="dark"] .section,html[data-theme="dark"] .site-header,html[data-theme="dark"] .site-footer,html[data-theme="dark"] .digital-card{background:#090b0e;color:#f0f3f6}
+html[data-theme="dark"] .hero{background:linear-gradient(120deg,#111a25,#182738);color:#f0f3f6}
+html[data-theme="dark"] .hero .summary,html[data-theme="dark"] .hero .institution,html[data-theme="dark"] .hero .graduation,html[data-theme="dark"] .hero .eyebrow{color:#d8e4ef}
+html[data-theme="dark"] .section-contact,html[data-theme="dark"] .project-card,html[data-theme="dark"] .contact-card,html[data-theme="dark"] .research-tools,html[data-theme="dark"] .cv-builder{background:#151b23;color:#f0f3f6}
+html[data-theme="dark"] h1,html[data-theme="dark"] h2,html[data-theme="dark"] h3,html[data-theme="dark"] .section-lead,html[data-theme="dark"] .project-desc,html[data-theme="dark"] .contact-text{color:#f0f3f6}
+html[data-theme="dark"] input,html[data-theme="dark"] textarea,html[data-theme="dark"] select,html[data-theme="dark"] .research-tools input,html[data-theme="dark"] .research-tools select,html[data-theme="dark"] .cv-builder select{background:#18212b;color:#f0f3f6;border-color:#506174}
+html[data-theme="dark"] a,html[data-theme="dark"] .site-footer a{color:#9dc6e6}
+html[data-theme="dark"] .button-solid,html[data-theme="dark"] .button-primary{background:#9dc6e6;color:#101820;border-color:#9dc6e6}
+html[data-theme="dark"] .button-secondary,html[data-theme="dark"] .button-outline{color:#d8e8f5;border-color:#7793ad}
+html[data-theme="dark"] .tag{background:#253343;color:#d8e8f5}
+html[data-theme="dark"] .contact-card:hover{background:#202b38}
+}
+@media print{.theme-toggle{display:none}}

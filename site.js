@@ -3,6 +3,16 @@
   const { UI, NAME } = window.Portfolio;
   const lang = document.body.dataset.lang || 'en', u = UI[lang];
   const preview = document.body.dataset.preview === 'true';
+  if (document.body.dataset.contactDemo !== 'true') {
+    const button=document.querySelector('[data-theme-toggle]'), media=window.matchMedia?.('(prefers-color-scheme: dark)');
+    const names={pt:{auto:'Automático',dark:'Noturno',light:'Claro',help:'Tema: '},en:{auto:'Automatic',dark:'Dark',light:'Light',help:'Theme: '},es:{auto:'Automático',dark:'Nocturno',light:'Claro',help:'Tema: '}}[lang];
+    let preference='auto';try{const stored=localStorage.getItem('maria-theme');if(['light','dark'].includes(stored))preference=stored;}catch{}
+    function applyTheme(){document.documentElement.dataset.theme=preference==='auto'?(media?.matches?'dark':'light'):preference;if(button){button.textContent='◐ '+names[preference];button.setAttribute('aria-label',names.help+names[preference]);button.title=names.help+names[preference];}}
+    button?.addEventListener('click',()=>{preference={auto:'dark',dark:'light',light:'auto'}[preference];try{if(preference==='auto')localStorage.removeItem('maria-theme');else localStorage.setItem('maria-theme',preference);}catch{}applyTheme();});
+    media?.addEventListener?.('change',applyTheme);
+    window.addEventListener('storage',event=>{if(event.key==='maria-theme'){preference=['light','dark'].includes(event.newValue)?event.newValue:'auto';applyTheme();}});
+    applyTheme();
+  }
   const status = document.getElementById('site-status');
   let statusTimer;
   function announce(message, persistent = false) {
