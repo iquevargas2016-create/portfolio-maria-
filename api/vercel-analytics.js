@@ -14,7 +14,7 @@ module.exports = endpoint(async (req, res) => {
     const url = new URL('https://api.vercel.com/v1/query/web-analytics/visits/aggregate');
     for (const [key,value] of Object.entries({projectId,teamId,since:since.toISOString(),until:until.toISOString(),by,limit:'10',filter:"environment eq 'production'"})) url.searchParams.set(key,value);
     const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(12000) });
-    if (!response.ok) throw error(503, response.status === 401 || response.status === 403 ? 'O token não tem acesso às estatísticas deste projeto. Confira o escopo electro-md.' : 'Estatísticas da Vercel indisponíveis. Confira Web Analytics e a janela permitida pelo plano.');
+    if (!response.ok) throw error(503, response.status === 401 || response.status === 403 ? 'As estatísticas de visitas estão indisponíveis no momento.' : 'As estatísticas de visitas estão indisponíveis no momento.');
     const result = await response.json();
     if (!Array.isArray(result.data) || result.data.some(r => !Number.isFinite(r.pageviews) || r.pageviews < 0 || !Number.isFinite(r.visitors) || r.visitors < 0)) throw error(502, 'Resposta de estatísticas inválida.');
     return result.data.map(r => ({label:String(by === 'day' ? r.timestamp : r[by] ?? 'Não informado').slice(0,250),pageviews:r.pageviews,visitors:r.visitors}));

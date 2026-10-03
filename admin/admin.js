@@ -5,7 +5,7 @@
   const KEY = `maria-draft-v2${demo ? '-demo' : ''}`;
   const LANGS = ['pt', 'en', 'es'];
   const clone = value => structuredClone(value);
-  const state = { token: '', content: null, published: null, revision: '', photo: null, tab: 'profile', canPublish: false, ai: false, previewed: '', previewLang: 'pt', previewType: 'home', previewSource: 'draft', mobile: false };
+  const state = { token: '', content: null, published: null, revision: '', photo: null, tab: 'profile', canPublish: false, ai: false, previewed: '', previewLang: 'pt', previewType: 'home', previewSource: 'draft', mobile: false, editLang: 'pt' };
   let previewAssets;
   async function loadPreviewAssets() {
     if (previewAssets) return;
@@ -20,7 +20,7 @@
     }));
     previewAssets = { css: assets[0], view: assets[1], site: assets[2], photo: assets[3] };
   }
-  const sections = { profile: 'Perfil e contato', projects: 'Pesquisas', education: 'Formação', publications: 'Publicações', certificates: 'Certificados', languages: 'Idiomas', custom: 'Seções extras', translations: 'Revisar traduções', ...(V.FEATURES.assistantUI ? { assistant: 'Assistente e IA' } : {}), preview: 'Antes e depois', history: 'Histórico', opportunities: 'Oportunidades', analytics: 'Interesse no perfil' };
+  const sections = { profile: 'Perfil e contato', projects: 'Pesquisas', education: 'Formação', publications: 'Publicações', certificates: 'Certificados', languages: 'Idiomas', custom: 'Seções extras', ...(V.FEATURES.assistantUI ? { assistant: 'Assistente e IA' } : {}), preview: 'Antes e depois', history: 'Histórico', opportunities: 'Oportunidades', analytics: 'Interesse no perfil' };
   const labels = { eyebrow: 'Apresentação', institution: 'Instituição', graduation: 'Formatura prevista', summary: 'Resumo do perfil', contact_email_value: 'Email', contact_phone_value: 'Telefone', contact_location_value: 'Localização', contact_title: 'Título do contato', contact_lead: 'Convite para contato', projects_title: 'Título de pesquisas', projects_lead: 'Introdução de pesquisas', education_title: 'Título da formação', publications_title: 'Título de publicações', publications_lead: 'Introdução de publicações', certificates_title: 'Título de certificados', certificates_lead: 'Introdução de certificados', languages_title: 'Título dos idiomas', title: 'Título completo', display_title: 'Título curto', subtitle: 'Instituição e função', desc: 'Descrição', venue: 'Publicação / evento', issuer: 'Instituição emissora', tags: 'Temas — um por linha', lead: 'Introdução', name: 'Nome do idioma' };
   const get = path => path.reduce((v, key) => v?.[key], state.content);
   function set(path, value) { let target = state.content; for (const key of path.slice(0, -1)) { if (target[key] == null) target[key] = {}; target = target[key]; } target[path.at(-1)] = value; }
@@ -57,22 +57,51 @@
   }
   function reviewed(path) { return state.content.editorial.translationReview[path.join('.')] === fingerprint(path); }
   function fieldGroup(label, paths, { tags = false } = {}) {
-    return `<div class="field-group"><h3>${esc(label)}</h3><div class="translations">${paths.map((path, i) => `<div><label>${LANGS[i].toUpperCase()} <span class="badge ${reviewed(path) ? 'reviewed' : ''}">${reviewed(path) ? 'Revisado' : 'A revisar'}</span><textarea rows="${['summary', 'desc', 'lead'].includes(path.at(-2)) || path.includes('summary') ? 4 : 2}" data-path="${encoded(path)}" ${tags ? 'data-tags="true"' : ''} maxlength="12000">${esc(valueText(get(path)))}</textarea></label><div class="field-tools">${V.FEATURES.assistantUI ? `<button data-edit-ai="${encoded(path)}" ${tags ? 'data-tags="true"' : ''}>Revisar com ChatGPT</button>` : ''}<button data-reviewed="${encoded(path)}">Marcar revisado</button></div></div>`).join('')}</div></div>`;
+    const path = paths[LANGS.indexOf(state.editLang)];
+    return `<div class="field-group"><label>${esc(label)}<textarea rows="${path.includes('summary') || path.includes('desc') ? 4 : 2}" data-path="${encoded(path)}" data-translate="true" ${tags ? 'data-tags="true"' : ''} maxlength="12000">${esc(valueText(get(path)))}</textarea></label></div>`;
+  }
+  let translating = false, translationTimer;
+  function pending() { return state.content.editorial.translationPending ||= {}; }
+  function markTranslation(path) {
+    const paths = groupPaths(path), key = JSON.stringify(paths);
+    const field = path[0] === 'collections' ? path.at(-2) : path[1];
+    if (['contact_email_value','contact_phone_value','contact_location_value'].includes(field)) { for (const target of paths) set(target,clone(get(path))); delete pending()[key]; return; }
+    pending()[key] = { path, source: state.editLang };
+    clearTimeout(translationTimer); translationTimer = setTimeout(translatePending, 1200);
+  }
+  async function translatePending() {
+    if (translating || !state.content) return;
+    if (demo) { $('#draft-status').textContent = 'Demonstração · tradução indisponível'; return; }
+    translating = true;
+    let failed = false;
+    try {
+      for (const [key, job] of Object.entries(pending())) {
+        const paths = groupPaths(job.path), value = clone(get(job.path));
+        if (value == null) { delete pending()[key]; continue; }
+        const parent = get(job.path.slice(0,-1)), snapshot = JSON.stringify(value);
+        const result = await api('/api/translate',{method:'POST',body:JSON.stringify({source:job.source,texts:Array.isArray(value)?value:[value]})});
+        if (get(job.path.slice(0,-1)) !== parent || JSON.stringify(get(job.path)) !== snapshot || pending()[key] !== job) continue;
+        for (const target of paths) { const lang = target[0] === 'collections' ? target.at(-1) : target[0]; if (lang !== job.source) set(target,Array.isArray(value)?result.translations[lang]:result.translations[lang][0]); }
+        delete pending()[key]; saveDraft();
+      }
+      $('#draft-status').textContent = Object.keys(pending()).length ? 'Traduções pendentes' : 'Salvo nos três idiomas';
+    } catch { failed = true; $('#draft-status').textContent = 'Texto salvo · tradução pendente'; toast('A tradução não terminou. Seu texto está salvo. Você pode tentar novamente.'); }
+    finally { translating = false; if (!failed && Object.keys(pending()).length) translationTimer = setTimeout(translatePending, 1200); }
   }
   const topGroup = key => fieldGroup(labels[key] || key.replaceAll('_', ' '), LANGS.map(l => [l, key]));
   const translatedGroup = (path, field) => fieldGroup(labels[field] || field, LANGS.map(l => [...path, field, l]), { tags: field === 'tags' });
   const simpleField = (label, path, type = 'text') => `<label>${esc(label)}<input type="${type}" data-path="${encoded(path)}" value="${esc(get(path) || '')}" maxlength="500"></label>`;
   function itemEditor(item, path, index, size, kind) {
     const fields = ['title', ...(kind === 'projects' ? ['display_title'] : []), kind === 'publications' ? 'venue' : kind === 'certificates' ? 'issuer' : 'subtitle', 'desc', 'tags'];
-    return `<article class="card"><div class="item-heading"><h2>${esc(V.text(item.display_title || item.title, 'pt') || `Novo item ${index + 1}`)}</h2><div class="item-actions"><button data-move="${encoded(path)}" data-direction="-1" ${index === 0 ? 'disabled' : ''} aria-label="Mover para cima">↑</button><button data-move="${encoded(path)}" data-direction="1" ${index === size - 1 ? 'disabled' : ''} aria-label="Mover para baixo">↓</button><button class="danger" data-delete="${encoded(path)}">Excluir</button></div></div><div class="plain-grid controls">${simpleField('Período / ano', [...path, 'period'])}${simpleField('Link de referência (opcional)', [...path, 'link'], 'url')}${kind === 'projects' ? simpleField('Endereço permanente — evite alterar depois de publicar', [...path, 'slug']) : ''}</div><details ${index === 0 ? 'open' : ''}><summary>Editar textos nos três idiomas</summary>${fields.map(f => translatedGroup(path, f)).join('')}</details></article>`;
+    return `<article class="card"><div class="item-heading"><h2>${esc(V.text(item.display_title || item.title, 'pt') || `Novo item ${index + 1}`)}</h2><div class="item-actions"><button data-move="${encoded(path)}" data-direction="-1" ${index === 0 ? 'disabled' : ''} aria-label="Mover para cima">↑</button><button data-move="${encoded(path)}" data-direction="1" ${index === size - 1 ? 'disabled' : ''} aria-label="Mover para baixo">↓</button><button class="danger" data-delete="${encoded(path)}">Excluir</button></div></div><div class="plain-grid controls">${simpleField('Período / ano', [...path, 'period'])}${simpleField('Link de referência (opcional)', [...path, 'link'], 'url')}</div><details ${index === 0 ? 'open' : ''}><summary>Editar informações</summary>${fields.map(f => translatedGroup(path, f)).join('')}</details></article>`;
   }
-  function heading(title, lead, action = '') { return `<div class="panel-heading"><div><h1>${title}</h1><p class="panel-lead">${lead}</p></div>${action}</div>`; }
+  function heading(title, lead, action = '') { return `<div class="panel-heading"><div><h1>${title}</h1><p class="panel-lead">${lead}</p>${['profile','projects','education','publications','certificates','custom'].includes(state.tab) ? `<label class="editor-language">Idioma de edição<select id="edit-language">${LANGS.map(l => `<option value="${l}" ${l === state.editLang ? 'selected' : ''}>${{pt:'Português',en:'English',es:'Español'}[l]}</option>`).join('')}</select></label><p class="hint">Edite uma vez. As outras versões serão traduzidas automaticamente.</p><button type="button" id="retry-translations">Atualizar traduções</button>` : ''}</div>${action}</div>`; }
   function render() {
     $('#navigation').innerHTML = Object.entries(sections).map(([id, title]) => `<button data-tab="${id}" class="${state.tab === id ? 'active' : ''}" ${state.tab === id ? 'aria-current="page"' : ''}>${title}</button>`).join('');
     const panel = $('#panel');
     if (state.tab === 'profile') {
       const primary = ['eyebrow', 'summary', 'institution', 'graduation', 'contact_email_value', 'contact_location_value'];
-      panel.innerHTML = heading('Um perfil que acompanha você.', 'Atualize sua apresentação. A edição fica no rascunho até você publicar.') + `<div class="card"><div class="controls"><img class="photo-preview" src="${state.photo || '/photo.jpg'}" alt="Foto do perfil"><label>Foto do perfil<input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp"></label></div><p class="hint">A nova foto fica no rascunho e só será enviada ao publicar.</p></div><div class="card">${primary.map(topGroup).join('')}</div><details class="card"><summary>Textos de navegação, seções e botões</summary>${Object.keys(state.content.pt).filter(k => !primary.includes(k)).map(topGroup).join('')}</details><div class="controls"><button data-export>Exportar rascunho</button><button data-reset>Descartar rascunho e carregar publicada</button></div>`;
+      panel.innerHTML = heading('Um perfil que acompanha você.', 'Atualize sua apresentação. A edição fica no rascunho até você publicar.') + `<div class="card"><div class="controls"><img class="photo-preview" src="${state.photo || '/photo.jpg'}" alt="Foto do perfil"><label>Foto do perfil<input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp"></label></div><p class="hint">A nova foto fica no rascunho e só será enviada ao publicar.</p></div><div class="card">${primary.map(topGroup).join('')}</div><details class="card"><summary>Textos de navegação, seções e botões</summary>${Object.keys(state.content.pt).filter(k => !primary.includes(k) && !k.startsWith('contact_phone')).map(topGroup).join('')}</details><div class="controls"><button data-export>Exportar rascunho</button><button data-reset>Descartar rascunho e carregar publicada</button></div>`;
     } else if (['projects', 'education', 'publications', 'certificates'].includes(state.tab)) {
       const kind = state.tab, items = state.content.collections[kind];
       panel.innerHTML = heading(sections[kind], 'Adicione somente informações que você deseja tornar públicas.', `<button class="primary" data-add="${encoded(['collections', kind])}">+ Adicionar</button>`) + (items.length ? items.map((item, i) => itemEditor(item, ['collections', kind, i], i, items.length, kind)).join('') : '<p class="empty">Nenhum item. Esta seção fica oculta no site enquanto estiver vazia.</p>');
@@ -103,7 +132,7 @@
       panel.innerHTML = heading('Oportunidades', 'Organize contatos recebidos, respostas e próximos passos.') + '<div id="opportunity-board" class="card"></div>';
       loadOpportunities();
     } else if (state.tab === 'analytics') {
-      panel.innerHTML = heading('O que desperta interesse', 'Acompanhe visitas e ações no perfil sem registrar o conteúdo das mensagens.') + `<div class="card"><h2>Estatísticas da Vercel · últimos 7 dias</h2><p id="vercel-metrics-state" role="status">Carregando…</p><div id="vercel-metrics"></div></div><div class="card"><h2>Vercel Analytics</h2><p>As visitas e os eventos do site continuam disponíveis no painel da Vercel.</p><a class="button" href="https://vercel.com/electro-md/portfolio-template-1/analytics" target="_blank" rel="noopener noreferrer">Abrir métricas na Vercel ↗</a></div><div class="card"><h2>Últimos 30 dias</h2><p id="metrics-state">Carregando contadores…</p><div id="metrics" class="metric-grid"></div></div>`;
+      panel.innerHTML = heading('O que desperta interesse', 'Acompanhe visitas e ações no perfil sem registrar o conteúdo das mensagens.') + `<div class="card"><h2>Visitas ao site · últimos 7 dias</h2><p id="vercel-metrics-state" role="status">Carregando…</p><div id="vercel-metrics"></div></div><div class="card"><h2>Últimos 30 dias</h2><p id="metrics-state">Carregando contadores…</p><div id="metrics" class="metric-grid"></div></div>`;
       loadMetrics();
       loadVercelMetrics();
     }
@@ -133,7 +162,7 @@
     if (state.tab !== 'opportunities') return;
     if (!remote) { try { items = JSON.parse(localStorage.getItem(storageKey) || '[]'); if (!Array.isArray(items)) items = []; } catch { items = []; } }
     function draw() {
-      board.innerHTML = `<p>${remote ? 'Mensagens recebidas pelo site. Disponíveis por até 90 dias; últimos 200 contatos.' : 'Organizador local: cadastre manualmente os contatos recebidos por email. Os dados ficam apenas neste navegador; exporte um backup. A captura automática exige armazenamento privado configurado.'}</p><div class="controls"><button id="op-export">Exportar backup JSON</button>${!remote ? '<label>Importar backup<input id="op-import" type="file" accept="application/json"></label>' : ''}</div>${!remote ? '<form id="op-add"><label>Nome<input name="name" required maxlength="100"></label><label>Email<input name="email" type="email" required maxlength="254"></label><label>Categoria<select name="intent"><option value="research">Pesquisa</option><option value="academic">Acadêmica</option><option value="professional">Profissional</option></select></label><label>Resumo<textarea name="message" required maxlength="1800"></textarea></label><button class="primary">Adicionar oportunidade</button></form>' : ''}<label>Filtrar situação<select id="op-filter"><option value="">Todas</option><option value="received">Recebida</option><option value="progress">Em andamento</option><option value="replied">Respondida</option></select></label><div id="op-list"></div><p id="op-note" role="status"></p>`;
+      board.innerHTML = `<p>${remote ? 'Mensagens recebidas pelo site. Disponíveis por até 90 dias; últimos 200 contatos.' : 'Cadastre os contatos recebidos por email. Eles ficam neste navegador; use o botão de backup para guardá-los.'}</p><div class="controls"><button id="op-export">Exportar backup JSON</button>${!remote ? '<label>Importar backup<input id="op-import" type="file" accept="application/json"></label>' : ''}</div>${!remote ? '<form id="op-add"><label>Nome<input name="name" required maxlength="100"></label><label>Email<input name="email" type="email" required maxlength="254"></label><label>Categoria<select name="intent"><option value="research">Pesquisa</option><option value="academic">Acadêmica</option><option value="professional">Profissional</option></select></label><label>Resumo<textarea name="message" required maxlength="1800"></textarea></label><button class="primary">Adicionar oportunidade</button></form>' : ''}<label>Filtrar situação<select id="op-filter"><option value="">Todas</option><option value="received">Recebida</option><option value="progress">Em andamento</option><option value="replied">Respondida</option></select></label><div id="op-list"></div><p id="op-note" role="status"></p>`;
       function rows() {
         const filter = $('#op-filter').value;
         $('#op-list').innerHTML = items.filter(i => !filter || i.status === filter).map(i => `<article class="card"><h3>${esc(i.name)}</h3><p>${esc(i.email)} · ${esc(i.intent)}</p><p>${esc(i.organization || '')}</p><p>${esc(i.context || '')} ${esc(i.deadline || '')}</p><p style="white-space:pre-wrap">${esc(i.message)}</p><label>Situação<select data-op-id="${esc(i.id)}">${[['received','Recebida'],['progress','Em andamento'],['replied','Respondida']].map(([v,t]) => `<option value="${v}" ${v === i.status ? 'selected' : ''}>${t}</option>`).join('')}</select></label></article>`).join('') || '<p>Nenhuma oportunidade nesta situação.</p>';
@@ -160,7 +189,7 @@
     if (demo) { note.textContent = 'A demonstração não consulta estatísticas reais.'; return; }
     try {
       const data = await api('/api/vercel-analytics'); if (state.tab !== 'analytics') return;
-      if (!data.configured) { note.textContent = 'Para conectar os dados reais, configure VERCEL_ANALYTICS_TOKEN em Production. Nenhuma credencial é exposta no navegador. Em previews, a consulta fica desativada.'; return; }
+      if (!data.configured) { note.textContent = 'As estatísticas de visitas ainda não estão disponíveis neste painel.'; return; }
       note.textContent = `Dados de produção · ${new Date(data.since).toLocaleDateString('pt-BR',{timeZone:'UTC'})} a ${new Date(data.until).toLocaleDateString('pt-BR',{timeZone:'UTC'})} (UTC). Atualização a cada 5 minutos. Visitantes por dia não devem ser somados como pessoas únicas do período.`;
       function chart(title, rows, daily = false) {
         if (!rows.length) return `<section><h3>${title}</h3><p>Sem dados no período.</p></section>`;
@@ -173,7 +202,7 @@
   }
   async function loadMetrics() {
     if (demo) { $('#metrics-state').textContent = 'A demonstração não mostra números inventados. Entre no painel para consultar a disponibilidade dos contadores.'; return; }
-    try { const data = await api('/api/analytics'); if (state.tab !== 'analytics') return; if (!data.configured) { $('#metrics-state').textContent = 'Contadores internos indisponíveis neste ambiente. Consulte a Vercel pelo link acima.'; return; } $('#metrics-state').textContent = 'Ações registradas desde a ativação, nos últimos 30 dias. Não representam pessoas únicas.'; const names = { research_open: 'Pesquisas abertas', cv_open: 'Currículos abertos', cv_print: 'Impressões de currículo', email_click: 'Cliques em email', contact_sent: 'Mensagens enviadas', contact_save: 'Contatos salvos', share: 'Compartilhamentos', email_copy: 'Emails copiados' }; $('#metrics').innerHTML = Object.entries(names).map(([k, label]) => `<div class="metric"><strong>${Number(data.counts[k] || 0)}</strong>${label}</div>`).join(''); }
+    try { const data = await api('/api/analytics'); if (state.tab !== 'analytics') return; if (!data.configured) { $('#metrics-state').textContent = 'As estatísticas de ações ainda não estão disponíveis.'; return; } $('#metrics-state').textContent = 'Ações registradas desde a ativação, nos últimos 30 dias. Não representam pessoas únicas.'; const names = { research_open: 'Pesquisas abertas', cv_open: 'Currículos abertos', cv_print: 'Impressões de currículo', email_click: 'Cliques em email', contact_sent: 'Mensagens enviadas', contact_save: 'Contatos salvos', share: 'Compartilhamentos', email_copy: 'Emails copiados' }; $('#metrics').innerHTML = Object.entries(names).map(([k, label]) => `<div class="metric"><strong>${Number(data.counts[k] || 0)}</strong>${label}</div>`).join(''); }
     catch (err) { if ($('#metrics-state')) $('#metrics-state').textContent = err.message; }
   }
   async function start(data) {
@@ -194,11 +223,12 @@
   $('#open-preview').addEventListener('click', () => { state.tab = 'preview'; state.previewSource = 'draft'; render(); });
   $('#panel').addEventListener('input', event => {
     const target = event.target; if (!target.dataset.path) return;
-    const path = JSON.parse(target.dataset.path); set(path, target.dataset.tags ? target.value.split('\n').map(s => s.trim()).filter(Boolean) : target.value); saveDraft();
+    const path = JSON.parse(target.dataset.path); set(path, target.dataset.tags ? target.value.split('\n').map(s => s.trim()).filter(Boolean) : target.value); if (target.dataset.translate) markTranslation(path); saveDraft();
     target.closest('.translations')?.querySelectorAll('.badge').forEach(b => { b.textContent = 'A revisar'; b.classList.remove('reviewed'); });
   });
   $('#panel').addEventListener('change', async event => {
     const t = event.target;
+    if (t.id === 'edit-language') { state.editLang = t.value; render(); return; }
     if (t.id === 'preview-source') { state.previewSource = t.value; updatePreview(); }
     if (t.id === 'preview-language') { state.previewLang = t.value; updatePreview(); }
     if (t.id === 'preview-type') { state.previewType = t.value; updatePreview(); }
@@ -217,6 +247,7 @@
     if (b.dataset.add) { const path = JSON.parse(b.dataset.add), list = get(path); const item = newItem(); if (path[1] === 'projects') item.slug = item.id; list.push(item); saveDraft(); render(); }
     if (b.hasAttribute('data-add-language')) { state.content.collections.languages.push({ code: 'en', level: 'basic' }); saveDraft(); render(); }
     if (b.hasAttribute('data-add-section')) { state.content.collections.custom_sections.push({ title: { pt: '', en: '', es: '' }, lead: { pt: '', en: '', es: '' }, items: [] }); saveDraft(); render(); }
+    if ((b.dataset.move || b.dataset.delete) && (translating || Object.keys(pending()).length)) { toast('Conclua as traduções antes de mover ou excluir este item.'); return; }
     if (b.dataset.delete && confirm('Excluir do rascunho? A versão publicada não muda agora.')) { const path = JSON.parse(b.dataset.delete); get(path.slice(0, -1)).splice(path.at(-1), 1); saveDraft(); render(); }
     if (b.dataset.move) { const path = JSON.parse(b.dataset.move), list = get(path.slice(0, -1)), i = path.at(-1), j = i + Number(b.dataset.direction); if (j >= 0 && j < list.length) { [list[i], list[j]] = [list[j], list[i]]; saveDraft(); render(); } }
     if (b.id === 'preview-device') { state.mobile = !state.mobile; render(); }
@@ -258,8 +289,10 @@
     if (valueText(get(targetPath())) !== originalAtOpen) { $('#ai-error').textContent = 'O texto mudou enquanto você revisava. Feche e abra o editor novamente.'; return; }
     set(targetPath(), aiTags ? result.split('\n').map(t => t.trim()).filter(Boolean) : result); saveDraft(); $('#ai-dialog').close(); render(); toast('Sugestão aplicada ao rascunho. Marque a tradução como revisada quando terminar.');
   });
+  $('#panel').addEventListener('click', event => { if (event.target.id === 'retry-translations') translatePending(); });
   $('#publish').addEventListener('click', () => {
     if (!state.canPublish) return;
+    if (translating || Object.keys(pending()).length) { translatePending(); toast('Aguarde a tradução antes de publicar.'); return; }
     if (state.previewed !== signature()) { state.tab = 'preview'; state.previewSource = 'draft'; render(); toast('Confira esta prévia. Depois toque em Publicar novamente.'); return; }
     $('#publish-error').textContent = ''; $('#publish-dialog').showModal();
   });
@@ -267,7 +300,7 @@
   $('#confirm-publish').addEventListener('click', async () => {
     if (!state.canPublish) return;
     const button = $('#confirm-publish'); button.disabled = true;
-    try { const data = await api('/api/save-content', { method: 'POST', body: JSON.stringify({ content: state.content, revision: state.revision, photo: state.photo }) }); state.revision = data.revision; state.published = clone(state.content); state.photo = null; try { localStorage.removeItem(KEY); } catch { /* Publication succeeded even if local storage is unavailable. */ } $('#draft-status').textContent = 'Enviado para publicação'; $('#publish-dialog').close(); toast(data.message); }
+    try { const data = await api('/api/save-content', { method: 'POST', body: JSON.stringify({ content: state.content, revision: state.revision, photo: state.photo }) }); state.revision = data.revision; state.published = clone(state.content); state.photo = null; try { localStorage.removeItem(KEY); } catch { /* Publication succeeded even if local storage is unavailable. */ } $('#draft-status').textContent = 'Atualização em andamento'; $('#publish-dialog').close(); toast(data.message); }
     catch (err) { $('#publish-error').textContent = err.message; } finally { button.disabled = false; }
   });
   window.addEventListener('storage', event => { if (event.key === KEY) toast('O rascunho mudou em outra aba. Exporte esta versão antes de recarregar para comparar.'); });
