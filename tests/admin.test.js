@@ -120,3 +120,10 @@ test('demo opportunities never request private APIs or return to login',async()=
  for(let i=0;i<2;i++){d.querySelector('[data-tab="opportunities"]').click();await settle();assert.equal(d.querySelector('#app').hidden,false);assert.equal(d.querySelector('#login').hidden,true);assert.ok(d.querySelector('#op-add'));d.querySelector('[data-tab="visual"]').click();}
  assert.ok(requests.every(url=>!url.startsWith('/api/')));dom.window.close();
 });
+
+test('editing sections open manually or through shortcuts in the same expandable area',async()=>{
+ const {dom,d}=await admin();const contact=d.querySelector('[data-edit-section="contact"]');assert.equal(contact.open,false);
+ contact.open=true;await settle();assert.ok(contact.querySelector('[data-path]'));assert.equal(d.querySelector('#visual-edit').hidden,false);
+ const languages=d.querySelector('[data-edit-section="languages"]');d.querySelector('[data-section="languages"]').click();await settle();assert.equal(languages.open,true);assert.equal(contact.open,false);assert.ok(languages.querySelector('[data-add-language]'));
+ dom.window.close();
+});

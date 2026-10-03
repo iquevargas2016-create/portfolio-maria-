@@ -11,3 +11,5 @@ select{appearance:none;-webkit-appearance:none;padding-right:2.8rem!important;ba
 @media(forced-colors:active){select{appearance:auto!important;-webkit-appearance:auto!important;background-image:none!important}}
 
 .visual-shortcuts{display:flex;flex-wrap:wrap;gap:.5rem;padding:.85rem;background:#fff;border:1px solid var(--border);border-radius:12px;margin-bottom:1rem;position:sticky;top:85px;z-index:10}.visual-shortcuts button{font-size:.9rem}.visual-edit{scroll-margin-top:180px;max-height:75vh;overflow-y:auto}.visual-settings{margin-block:.5rem 1rem}.visual-settings summary{margin-bottom:0}.visual-layout{grid-template-columns:minmax(0,1fr) 340px}@media(max-width:1000px){.visual-layout{grid-template-columns:1fr}.visual-edit{grid-row:1;max-height:none;scroll-margin-top:230px}.visual-shortcuts{position:static}}
+
+.visual-layout{display:block}.editing-sections{margin-top:1.5rem}.edit-section{scroll-margin-top:180px}.edit-section>summary{font-size:1rem}.editing-sections .visual-edit{position:static;max-height:none;overflow:visible;scroll-margin-top:180px}.editing-sections .visual-edit:focus{outline:0}
