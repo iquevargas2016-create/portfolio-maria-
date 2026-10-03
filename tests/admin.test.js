@@ -59,7 +59,7 @@ test('assistant test does not enable the published feature or invoke a model', a
   assert.equal(w.localStorage.getItem('maria-draft-v2-demo'), null); assert.ok(requests.every(url => !url.startsWith('/api/'))); page.window.close(); dom.window.close();
 });
 test('editing an existing project preserves its permanent address and other languages', async () => {
-  const { dom, d, w } = await admin(); d.querySelector('[data-section="projects"]').click();
+  const { dom, d, w } = await admin(); d.querySelector('[data-edit-section="projects"]').open=true;await settle();
   const field = [...d.querySelectorAll('textarea')].find(n => n.dataset.path === '["collections","projects",0,"desc","pt"]');
   field.value = 'Descrição revisada.'; field.dispatchEvent(new w.Event('input', { bubbles: true }));
   const draft = JSON.parse(w.localStorage.getItem('maria-draft-v2-demo')).content;
@@ -104,9 +104,9 @@ test('fixed labels cannot be selected and education can only be added, completed
   const {dom,d,w}=await admin();
   const page=new JSDOM(d.querySelector('iframe').srcdoc);
   for(const node of page.window.document.querySelectorAll('.contact-label,.hero-actions a:first-child,.hero-actions a:last-child')) assert.equal(node.hasAttribute('data-visual-id'),false);
-  d.querySelector('[data-section="contact"]').click();
+  d.querySelector('[data-edit-section="contact"]').open=true;await settle();
   for(const key of ['contact_email_label','contact_location_label','hero_research','hero_contact','languages_title']) assert.equal([...d.querySelectorAll('[data-path]')].some(n=>n.dataset.path===JSON.stringify(['pt',key])),false);
-  d.querySelector('[data-section="education"]').click();assert.equal(d.querySelector('#panel textarea'),null);assert.ok(d.querySelector('[data-delete]'));
+  d.querySelector('[data-edit-section="education"]').open=true;await settle();assert.equal(d.querySelector('#panel textarea'),null);assert.ok(d.querySelector('[data-delete]'));
   d.querySelector('[data-add]').click();
   const title=[...d.querySelectorAll('textarea')].find(n=>n.dataset.path.endsWith(',"title","pt"]'));assert.ok(title);
   title.value='Nova formação';title.dispatchEvent(new w.Event('input',{bubbles:true}));
@@ -124,7 +124,7 @@ test('demo opportunities never request private APIs or return to login',async()=
 test('editing sections open manually or through shortcuts in the same expandable area',async()=>{
  const {dom,d}=await admin();const contact=d.querySelector('[data-edit-section="contact"]');assert.equal(contact.open,false);
  contact.open=true;await settle();assert.ok(contact.querySelector('[data-path]'));assert.equal(d.querySelector('#visual-edit').hidden,false);
- const languages=d.querySelector('[data-edit-section="languages"]');d.querySelector('[data-section="languages"]').click();await settle();assert.equal(languages.open,true);assert.equal(contact.open,false);assert.ok(languages.querySelector('[data-add-language]'));
+ const languages=d.querySelector('[data-edit-section="languages"]');d.querySelector('[data-edit-section="languages"]').open=true;await settle();await settle();assert.equal(languages.open,true);assert.equal(contact.open,false);assert.ok(languages.querySelector('[data-add-language]'));
  dom.window.close();
 });
 
