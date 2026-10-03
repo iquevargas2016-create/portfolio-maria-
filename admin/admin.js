@@ -4,6 +4,7 @@
   const demo = new URLSearchParams(location.search).get('demo') === '1';
   const KEY = `maria-draft-v2${demo ? '-demo' : ''}`;
   const LANGS = ['pt', 'en', 'es'];
+  const fixedContactLabels = new Set(['contact_email_label', 'contact_location_label']);
   const clone = value => structuredClone(value);
   const state = { token: '', content: null, published: null, revision: '', photo: null, tab: 'visual', canPublish: false, ai: false, previewed: '', previewLang: 'pt', previewType: 'home', previewSource: 'draft', mobile: false, editLang: 'pt' };
   let previewAssets;
@@ -101,7 +102,7 @@
     const panel = $('#panel');
     if (state.tab === 'visual') { renderVisual(panel); } else if (state.tab === 'profile') {
       const primary = ['eyebrow', 'summary', 'institution', 'graduation', 'contact_email_value', 'contact_location_value'];
-      panel.innerHTML = heading('Um perfil que acompanha você.', 'Atualize sua apresentação. A edição fica no rascunho até você publicar.') + `<div class="card"><div class="controls"><img class="photo-preview" src="${state.photo || '/photo.jpg'}" alt="Foto do perfil"><label>Foto do perfil<input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp"></label></div><p class="hint">A nova foto fica no rascunho e só será enviada ao publicar.</p></div><div class="card">${primary.map(topGroup).join('')}</div><details class="card"><summary>Textos de navegação, seções e botões</summary>${Object.keys(state.content.pt).filter(k => !primary.includes(k) && !k.startsWith('contact_phone')).map(topGroup).join('')}</details><div class="controls"><button data-export>Exportar rascunho</button><button data-reset>Descartar rascunho e carregar publicada</button></div>`;
+      panel.innerHTML = heading('Um perfil que acompanha você.', 'Atualize sua apresentação. A edição fica no rascunho até você publicar.') + `<div class="card"><div class="controls"><img class="photo-preview" src="${state.photo || '/photo.jpg'}" alt="Foto do perfil"><label>Foto do perfil<input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp"></label></div><p class="hint">A nova foto fica no rascunho e só será enviada ao publicar.</p></div><div class="card">${primary.map(topGroup).join('')}</div><details class="card"><summary>Textos de navegação, seções e botões</summary>${Object.keys(state.content.pt).filter(k => !primary.includes(k) && !fixedContactLabels.has(k) && !k.startsWith('contact_phone')).map(topGroup).join('')}</details><div class="controls"><button data-export>Exportar rascunho</button><button data-reset>Descartar rascunho e carregar publicada</button></div>`;
     } else if (['projects', 'education', 'publications', 'certificates'].includes(state.tab)) {
       const kind = state.tab, items = state.content.collections[kind];
       panel.innerHTML = heading(sections[kind], 'Adicione somente informações que você deseja tornar públicas.', `<button class="primary" data-add="${encoded(['collections', kind])}">+ Adicionar</button>`) + (items.length ? items.map((item, i) => itemEditor(item, ['collections', kind, i], i, items.length, kind)).join('') : '<p class="empty">Nenhum item. Esta seção fica oculta no site enquanto estiver vazia.</p>');
@@ -111,7 +112,7 @@
       panel.innerHTML = heading('Espaço para novas experiências', 'Crie seções para atividades acadêmicas ou outras informações do seu percurso.', '<button class="primary" data-add-section>+ Criar seção</button>') + state.content.collections.custom_sections.map((s, i) => `<section class="card"><div class="item-heading"><h2 data-user-text>${esc(V.text(s.title, state.editLang) || 'Nova seção')}</h2><button class="danger" data-delete="${encoded(['collections', 'custom_sections', i])}">Excluir seção</button></div>${translatedGroup(['collections', 'custom_sections', i], 'title')}${translatedGroup(['collections', 'custom_sections', i], 'lead')}<button data-add="${encoded(['collections', 'custom_sections', i, 'items'])}">+ Adicionar item</button>${(s.items || []).map((item, j) => itemEditor(item, ['collections', 'custom_sections', i, 'items', j], j, s.items.length, 'custom')).join('')}</section>`).join('');
     } else if (state.tab === 'translations') {
       const groups = [];
-      for (const key of Object.keys(state.content.pt)) groups.push({ label: labels[key] || 'Texto do site', paths: LANGS.map(l => [l, key]) });
+      for (const key of Object.keys(state.content.pt).filter(k => !fixedContactLabels.has(k))) groups.push({ label: labels[key] || 'Texto do site', paths: LANGS.map(l => [l, key]) });
       const walk = (value, path) => {
         if (!value || typeof value !== 'object') return;
         if (LANGS.some(l => Object.hasOwn(value, l)) && LANGS.every(l => typeof value[l] === 'string' || Array.isArray(value[l]) || value[l] == null)) { groups.push({ label: `${path.filter(p => typeof p === 'string' && p !== 'collections').map(p => labels[p] || sections[p] || p).join(' / ')}`, paths: LANGS.map(l => [...path, l]), tags: Array.isArray(value.pt || value.en || value.es) }); return; }
@@ -149,11 +150,11 @@
   function editablePreview(html) {
     const doc = new DOMParser().parseFromString(html,'text/html'), candidates = [];
     const add = path => { const value=get(path); if(typeof value==='string' && value.trim()) candidates.push({path,value:value.trim()}); };
-    Object.keys(state.content[state.editLang]).filter(k=>!k.startsWith('contact_phone')).forEach(k=>add([state.editLang,k]));
+    Object.keys(state.content[state.editLang]).filter(k=>!fixedContactLabels.has(k) && !k.startsWith('contact_phone')).forEach(k=>add([state.editLang,k]));
     function walk(value,path) { if(!value || typeof value!=='object') return; if(Object.hasOwn(value,state.editLang)) { add([...path,state.editLang]); return; } Object.entries(value).forEach(([k,v])=>walk(v,[...path,Array.isArray(value)?Number(k):k])); }
     walk(state.content.collections,['collections']); visualPaths=[];
     doc.querySelectorAll('h1,h2,h3,p,a,span,summary').forEach(node=>{
-      if(node.children.length || node.closest('form')) return;
+      if(node.children.length || node.closest('form') || node.classList.contains('contact-label')) return;
       const value=node.textContent.trim().replace(/ ↗$/,'');
       const matches=candidates.filter(c=>c.value===value);
       if(matches.length!==1) return;
