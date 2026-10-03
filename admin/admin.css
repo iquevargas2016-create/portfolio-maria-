@@ -40,3 +40,5 @@ html[data-admin-theme="dark"] a{color:#b9d7ed}html[data-admin-theme="dark"] .toa
 .content-disclosure>label{max-width:420px;margin-block:1rem 1.5rem}
 
 .preview-disclosure .preview-wrap,html[data-admin-theme="dark"] .preview-disclosure .preview-wrap{background:transparent;padding:0}.preview-disclosure .preview-frame{border-radius:8px}
+
+.preview-disclosure{scroll-margin-top:95px}
