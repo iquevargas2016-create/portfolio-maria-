@@ -252,3 +252,7 @@ html[data-theme="dark"] .tag{background:#253343;color:#d8e8f5}
 html[data-theme="dark"] .contact-card:hover{background:#202b38}
 }
 @media print{.theme-toggle{display:none}}
+
+/* Keep dropdown arrows inset and reserve space for the selected text. */
+select,.research-tools select,.cv-builder select{appearance:none;-webkit-appearance:none;padding-right:2.8rem!important;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238394a6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")!important;background-repeat:no-repeat!important;background-position:right 1rem center!important;background-size:16px 16px!important}
+@media(forced-colors:active){select,.research-tools select,.cv-builder select{appearance:auto!important;-webkit-appearance:auto!important;background-image:none!important}}
