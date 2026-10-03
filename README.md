@@ -48,3 +48,7 @@ O service worker guarda apenas páginas públicas e arquivos expressamente permi
 ## Verificação
 
 Testes Node + JSDOM cobrem renderização, rotas, escape de HTML, rascunhos, comparação, assistente, autenticação, conflitos de publicação e limites de integração. Não substituem uma inspeção visual em navegador real. IA e publicação são testadas com respostas simuladas; precisam de validação ao vivo com as credenciais do ambiente antes de serem consideradas operacionais.
+
+## Interface de IA guardada para uso futuro
+
+`FEATURES.assistantUI` em `shared/view.js` está em `false`. Isso retira os botões, a seção do painel e o assistente público, inclusive nas prévias e em rascunhos antigos que tenham `features.assistant=true`. O código é preservado. Para reativar a interface futuramente, altere essa constante para `true` e publique uma nova versão. A ativação visual não ativa a API paga: continuam valendo as configurações e confirmações descritas acima.

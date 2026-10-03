@@ -6,7 +6,7 @@ const content = require('../content.json');
 const V = require('../shared/view');
 const script = file => fs.readFileSync(require.resolve('../' + file), 'utf8');
 const settle = () => new Promise(resolve => setTimeout(resolve, 20));
-async function admin() {
+async function admin(enableAssistant = false) {
   const dom = new JSDOM(script('admin/index.html'), { url: 'https://preview.test/admin/?demo=1', runScripts: 'outside-only' });
   const w = dom.window, requests = [];
   w.structuredClone = structuredClone; w.confirm = () => true;
@@ -18,7 +18,7 @@ async function admin() {
     const bytes = url === '/content.json' ? null : fs.readFileSync(require.resolve('..' + url));
     return { ok: true, json: async () => structuredClone(content), text: async () => bytes.toString(), arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) };
   };
-  w.eval(script('shared/view.js')); w.eval(script('admin/admin.js')); await settle();
+  w.eval(enableAssistant ? script('shared/view.js').replace('assistantUI: false', 'assistantUI: true') : script('shared/view.js')); w.eval(script('admin/admin.js')); await settle();
   return { dom, w, d: w.document, requests };
 }
 test('demo edits and persists a draft, compares it, and cannot publish', async () => {
@@ -34,7 +34,7 @@ test('demo edits and persists a draft, compares it, and cannot publish', async (
   assert.ok(requests.every(url => !url.startsWith('/api/'))); dom.window.close();
 });
 test('manual ChatGPT suggestion only changes draft after explicit acceptance', async () => {
-  const { dom, d, w, requests } = await admin();
+  const { dom, d, w, requests } = await admin(true);
   d.querySelector('[data-tab="assistant"]').click();
   d.querySelector('[data-edit-ai]').click(); assert.ok(d.querySelector('#ai-dialog').open);
   assert.equal(d.querySelector('#paid-test').disabled, true); assert.equal(d.querySelector('#generate-ai').disabled, true);
@@ -45,7 +45,7 @@ test('manual ChatGPT suggestion only changes draft after explicit acceptance', a
   assert.ok(requests.every(url => !url.startsWith('/api/'))); dom.window.close();
 });
 test('assistant test does not enable the published feature or invoke a model', async () => {
-  const { dom, d, w, requests } = await admin();
+  const { dom, d, w, requests } = await admin(true);
   d.querySelector('[data-tab="assistant"]').click(); assert.equal(d.querySelector('#assistant-enabled').checked, false);
   d.querySelector('[data-test-assistant]').click();
   const html = d.querySelector('iframe').srcdoc, page = new JSDOM(html, { url: 'https://preview.test/pt/', runScripts: 'outside-only' });
@@ -63,4 +63,15 @@ test('editing an existing project preserves its permanent address and other lang
   field.value = 'Descrição revisada.'; field.dispatchEvent(new w.Event('input', { bubbles: true }));
   const draft = JSON.parse(w.localStorage.getItem('maria-draft-v2-demo')).content;
   assert.equal(draft.collections.projects[0].slug, 'electrode-durability'); assert.equal(draft.collections.projects[0].desc.en, content.collections.projects[0].desc.en); dom.window.close();
+});
+
+test('assistant controls are absent by default in admin and every public preview', async () => {
+  const { dom, d } = await admin();
+  assert.equal(d.querySelector('[data-tab="assistant"]'), null);
+  assert.equal(d.querySelector('[data-edit-ai]'), null);
+  for (const lang of V.LANGS) for (const type of ['home', 'cv', 'card', 'project']) {
+    const html = V.renderPage({ ...content, features: { assistant: true } }, { lang, type, slug: 'electrode-durability', preview: true });
+    assert.equal(new JSDOM(html).window.document.querySelector('#portfolio-helper'), null);
+  }
+  dom.window.close();
 });

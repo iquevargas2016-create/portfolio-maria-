@@ -34,7 +34,7 @@ test('render escapes HTML, structured data and rejects unsafe external URLs', ()
   assert.equal(doc.querySelector('a[href^="javascript:"]'), null);
   assert.ok(doc.querySelector('.summary').textContent.includes('</script>'));
   assert.doesNotThrow(() => JSON.parse(doc.querySelector('script[type="application/ld+json"]').textContent));
-  assert.doesNotThrow(() => JSON.parse(doc.querySelector('#helper-content').textContent));
+  assert.equal(doc.querySelector('#helper-content'), null);
 });
 test('validation rejects duplicate/perilous slugs, malformed translations, email and images', () => {
   assert.doesNotThrow(() => validate(content));

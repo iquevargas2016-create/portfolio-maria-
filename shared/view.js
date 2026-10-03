@@ -3,6 +3,8 @@
   else root.Portfolio = factory();
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // Change only when intentionally re-enabling assistant controls.
+  const FEATURES = Object.freeze({ assistantUI: false });
   const LANGS = ['pt', 'en', 'es'];
   const NAME = 'Maria Eduarda Miranda';
   const ORIGIN = 'https://mariamirandamd.com';
@@ -163,7 +165,7 @@
       <a class="skip-link" href="#main">${escape(d.skip_link)}</a>${options.preview ? `<div class="preview-strip">${u.preview}</div>` : ''}
       <header class="site-header"><div class="container header-inner"><a class="brand" href="${pathFor(lang)}">Maria Eduarda Miranda</a><nav class="site-nav" aria-label="${escape(d.nav_label)}"><ul><li><a href="${pathFor(lang)}#projects">${escape(d.nav_projects)}</a></li><li><a href="${pathFor(lang)}#education">${escape(d.nav_education)}</a></li><li><a href="${pathFor(lang)}#contact">${escape(d.nav_contact)}</a></li></ul></nav><nav class="lang-switch" aria-label="${escape(d.language_label)}">${LANGS.map(l => `<a class="lang-btn ${l === lang ? 'is-active' : ''}" lang="${l}" hreflang="${l}" href="${pathFor(l, type, slug)}" ${l === lang ? 'aria-current="page"' : ''} aria-label="${{ pt: 'Português', en: 'English', es: 'Español' }[l]}">${l.toUpperCase()}</a>`).join('')}</nav></div></header>
       <main id="main" tabindex="-1" class="${type === 'cv' ? 'cv-page' : ''}">${body}</main><footer class="site-footer"><div class="container footer-inner"><span>© ${new Date().getFullYear()} ${NAME}</span><span>${escape(d.footer_location)}</span><a href="${pathFor(lang, 'card')}">${u.card}</a><button type="button" data-install hidden>${u.install}</button></div></footer><div id="site-status" role="status" aria-live="polite" class="site-status" hidden></div>
-      ${content.features?.assistant || options.preview ? helper(content, lang, !!options.preview) : ''}<script src="/shared/view.js" defer></script><script src="/site.js" defer></script>${options.preview ? '' : '<script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script><script defer src="/_vercel/insights/script.js"></script>'}</body></html>`;
+      ${FEATURES.assistantUI && (content.features?.assistant || options.preview) ? helper(content, lang, !!options.preview) : ''}<script src="/shared/view.js" defer></script><script src="/site.js" defer></script>${options.preview ? '' : '<script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script><script defer src="/_vercel/insights/script.js"></script>'}</body></html>`;
   }
-  return { LANGS, UI, ORIGIN, NAME, escape, text, slugify, projectSlug, pathFor, safeURL, emailAddress, phoneNumber, renderPage };
+  return { FEATURES, LANGS, UI, ORIGIN, NAME, escape, text, slugify, projectSlug, pathFor, safeURL, emailAddress, phoneNumber, renderPage };
 });
