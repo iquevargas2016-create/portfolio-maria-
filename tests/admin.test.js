@@ -18,12 +18,13 @@ async function admin(enableAssistant = false) {
     const bytes = url === '/content.json' ? null : fs.readFileSync(require.resolve('..' + url));
     return { ok: true, json: async () => structuredClone(content), text: async () => bytes.toString(), arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) };
   };
-  w.eval(enableAssistant ? script('shared/view.js').replace('assistantUI: false', 'assistantUI: true') : script('shared/view.js')); w.eval(script('admin/admin.js')); await settle();
+  w.eval(enableAssistant ? script('shared/view.js').replace('assistantUI: false', 'assistantUI: true') : script('shared/view.js')); w.eval(script('admin/i18n.js')); w.eval(script('admin/admin.js')); await settle();
   return { dom, w, d: w.document, requests };
 }
 test('demo edits and persists a draft, compares it, and cannot publish', async () => {
   const { dom, w, d, requests } = await admin();
   assert.equal(d.querySelector('#app').hidden, false); assert.equal(d.querySelector('#publish').disabled, true);
+  d.querySelector('[data-tab="profile"]').click();
   const input = [...d.querySelectorAll('textarea[data-path]')].find(n => n.dataset.path === '["pt","summary"]');
   input.value = 'Resumo revisado no rascunho.'; input.dispatchEvent(new w.Event('input', { bubbles: true }));
   const saved = JSON.parse(w.localStorage.getItem('maria-draft-v2-demo')); assert.equal(saved.content.pt.summary, input.value);
@@ -74,4 +75,24 @@ test('assistant controls are absent by default in admin and every public preview
     assert.equal(new JSDOM(html).window.document.querySelector('#portfolio-helper'), null);
   }
   dom.window.close();
+});
+
+test('visual editor selects only known text, saves a draft, switches all UI and previews appearance', async () => {
+  const {dom,d,w,requests}=await admin();
+  assert.ok(d.querySelector('#visual-edit'));
+  const frame=d.querySelector('#preview-frame');
+  const page=new JSDOM(frame.srcdoc); const selection=[...page.window.document.querySelectorAll('[data-visual-id]')].find(n=>n.textContent===content.pt.summary);
+  assert.ok(selection);
+  const message={kind:'maria-edit',id:Number(selection.dataset.visualId)};
+  w.dispatchEvent(new w.MessageEvent('message',{data:message,source:w}));assert.equal(d.querySelector('#visual-text'),null);
+  w.dispatchEvent(new w.MessageEvent('message',{data:message,source:frame.contentWindow}));
+  d.querySelector('#visual-text').value='Novo resumo visual.';d.querySelector('#visual-save').click();
+  assert.match(frame.srcdoc,/Novo resumo visual/);
+  assert.equal(JSON.parse(w.localStorage.getItem('maria-draft-v2-demo')).content.pt.summary,'Novo resumo visual.');
+  const device=d.querySelector('#visual-device');device.value='mobile';device.dispatchEvent(new w.Event('change',{bubbles:true}));assert.ok(d.querySelector('#preview-frame').classList.contains('mobile'));
+  const color=d.querySelector('#visual-color');color.value='#225588';color.dispatchEvent(new w.Event('change',{bubbles:true}));assert.match(frame.srcdoc,/--brand:#225588/);
+  const lang=d.querySelector('#edit-language');lang.value='en';lang.dispatchEvent(new w.Event('change',{bubbles:true}));await settle();
+  assert.equal(d.documentElement.lang,'en');assert.equal(d.querySelector('[data-tab="visual"]').textContent,'Edit on the website');assert.equal(d.querySelector('#publish').textContent,'Publish');assert.match(d.querySelector('iframe').srcdoc,/lang="en"/);
+  assert.equal(d.querySelector('#publish').disabled,true);assert.ok(requests.every(url=>!url.startsWith('/api/')));
+  page.window.close();dom.window.close();
 });

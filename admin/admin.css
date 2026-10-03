@@ -3,3 +3,5 @@
 .editor-language{max-width:280px;margin-bottom:1rem}
 #edit-language{appearance:none;-webkit-appearance:none;padding-right:2.8rem;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2322374a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 1rem center;background-size:16px 16px}
 @media(forced-colors:active){#edit-language{appearance:auto;background-image:none}}
+
+.visual-layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:1rem}.visual-edit{align-self:start;position:sticky;top:100px;margin:0}.visual-tools input[type=color]{height:44px;max-width:90px}.visual-tools label{flex:0 1 130px}@media(max-width:1000px){.visual-layout{grid-template-columns:1fr}.visual-edit{position:static}}
