@@ -6,10 +6,10 @@ const content = require('../content.json');
 const V = require('../shared/view');
 const script = file => fs.readFileSync(require.resolve('../' + file), 'utf8');
 const settle = () => new Promise(resolve => setTimeout(resolve, 20));
-async function admin(enableAssistant = false, openPreview = true) {
+async function admin(enableAssistant = false, openPreview = true, restoreSection = null) {
   const dom = new JSDOM(script('admin/index.html'), { url: 'https://preview.test/admin/?demo=1', runScripts: 'outside-only' });
   const w = dom.window, requests = [];
-  if(openPreview) w.localStorage.setItem('maria-admin-layout-demo',JSON.stringify({expires:Date.now()+600000,open:['preview-disclosure'],section:null}));
+  if(openPreview) w.localStorage.setItem('maria-admin-layout-demo',JSON.stringify({expires:Date.now()+600000,open:['preview-disclosure',...(restoreSection?['edit-site-disclosure','content-disclosure','section:'+restoreSection]:[])],section:restoreSection}));
   w.structuredClone = structuredClone; w.confirm = () => true;
   w.HTMLDialogElement.prototype.showModal = function () { this.open = true; };
   w.HTMLDialogElement.prototype.close = function () { this.open = false; };
@@ -180,4 +180,14 @@ test('rapid palette input is grouped into one preview update',async()=>{
  await settle();
  assert.equal(messages.filter(message=>message.kind==='maria-appearance').length,1);
  assert.ok(messages[0].css.some(css=>css.includes('#334455')));dom.window.close();
+});
+
+test('restoring open sections never injects automatic scrolling into the preview',async()=>{
+ const {dom,d}=await admin(false,true,'contact');
+ assert.equal(d.querySelector('[data-edit-section="contact"]').open,true);
+ assert.equal(d.querySelector('.preview-disclosure').open,true);
+ const preview=new JSDOM(d.querySelector('#preview-frame').srcdoc);
+ assert.ok(![...preview.window.document.scripts].some(script=>script.textContent.includes('scrollIntoView({block:"start"})')));
+ assert.ok([...preview.window.document.scripts].some(script=>script.textContent.includes('maria-preview-focus')));
+ preview.window.close();dom.window.close();
 });
