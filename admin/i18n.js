@@ -33,7 +33,8 @@
       }
     }
   }
-  const observer = new MutationObserver(() => localize());
+  let localizationQueued = false;
+  const observer = new MutationObserver(() => { if (localizationQueued) return; localizationQueued = true; (window.requestAnimationFrame || (callback => setTimeout(callback, 16)))(() => { localizationQueued = false; if (window.document?.body) { observer.disconnect(); localize(); observer.observe(document.body,{childList:true,subtree:true,characterData:true}); } }); });
   observer.observe(document.body,{childList:true,subtree:true,characterData:true});
   window.AdminI18n = {setLanguage(value){language=['pt','en','es'].includes(value)?value:'pt';localize();},text};
   localize();

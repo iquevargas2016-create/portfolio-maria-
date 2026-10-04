@@ -6,9 +6,10 @@ const content = require('../content.json');
 const V = require('../shared/view');
 const script = file => fs.readFileSync(require.resolve('../' + file), 'utf8');
 const settle = () => new Promise(resolve => setTimeout(resolve, 20));
-async function admin(enableAssistant = false) {
+async function admin(enableAssistant = false, openPreview = true) {
   const dom = new JSDOM(script('admin/index.html'), { url: 'https://preview.test/admin/?demo=1', runScripts: 'outside-only' });
   const w = dom.window, requests = [];
+  if(openPreview) w.localStorage.setItem('maria-admin-layout-demo',JSON.stringify({expires:Date.now()+600000,open:['preview-disclosure'],section:null}));
   w.structuredClone = structuredClone; w.confirm = () => true;
   w.HTMLDialogElement.prototype.showModal = function () { this.open = true; };
   w.HTMLDialogElement.prototype.close = function () { this.open = false; };
@@ -143,4 +144,17 @@ test('color changes update styles in place without reloading preview or photo',a
  const {dom,d,w}=await admin();const frame=d.querySelector('#preview-frame'),original=frame.srcdoc,messages=[];frame.contentWindow.postMessage=message=>messages.push(message);
  const color=d.querySelector('[data-palette="background"]');color.value='#ccbbaa';color.dispatchEvent(new w.Event('input',{bubbles:true}));
  assert.equal(frame.srcdoc,original);assert.equal(messages.at(-1).kind,'maria-appearance');assert.ok(messages.at(-1).css.some(css=>css.includes('#ccbbaa')));dom.window.close();
+});
+
+test('admin becomes usable without fetching or rendering a closed preview', async () => {
+  const {dom,d,requests}=await admin(false,false);
+  assert.equal(d.querySelector('#app').hidden,false);
+  assert.deepEqual(requests,['/content.json']);
+  assert.equal(d.querySelector('#preview-frame').srcdoc,'');
+  d.querySelector('.preview-disclosure').open=true;
+  await settle();
+  assert.match(d.querySelector('#preview-frame').srcdoc,/hero-name/);
+  assert.equal(requests.filter(url=>url==='/styles.css').length,1);
+  assert.ok(!requests.includes('/photo.jpg'));
+  dom.window.close();
 });

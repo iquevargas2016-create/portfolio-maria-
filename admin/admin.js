@@ -12,19 +12,15 @@
   const fixedContactLabels = new Set(['contact_email_label', 'contact_location_label', 'hero_research', 'hero_contact', 'languages_title', 'nav_projects', 'nav_contact']);
   const clone = value => structuredClone(value);
   const state = { token: '', content: null, published: null, revision: '', photo: null, tab: 'visual', canPublish: false, ai: false, previewed: '', previewLang: 'pt', previewType: 'home', previewSource: 'draft', mobile: false, visualMobile: false, directEditing: false, editLang: 'pt' };
-  let previewAssets;
-  async function loadPreviewAssets() {
-    if (previewAssets) return;
-    const paths = ['/styles.css', '/shared/view.js', '/site.js', '/photo.jpg'];
-    const assets = await Promise.all(paths.map(async path => {
+  let previewAssets, previewAssetsPromise;
+  function loadPreviewAssets() {
+    if (previewAssets) return Promise.resolve();
+    if (!previewAssetsPromise) previewAssetsPromise = Promise.all(['/styles.css', '/shared/view.js', '/site.js'].map(async path => {
       const response = await fetch(path);
-      if (!response.ok) throw new Error('Não foi possível carregar os arquivos da prévia. Recarregue a página.');
-      if (path !== '/photo.jpg') return response.text();
-      const bytes = new Uint8Array(await response.arrayBuffer());
-      let binary = ''; for (const byte of bytes) binary += String.fromCharCode(byte);
-      return `data:image/jpeg;base64,${btoa(binary)}`;
-    }));
-    previewAssets = { css: assets[0], view: assets[1], site: assets[2], photo: assets[3] };
+      if (!response.ok) throw new Error('Não foi possível carregar os arquivos da prévia. Tente abrir a prévia novamente.');
+      return response.text();
+    })).then(([css, view, site]) => { previewAssets = { css, view, site, photo: '/photo.jpg' }; }).catch(error => { previewAssetsPromise = null; throw error; });
+    return previewAssetsPromise;
   }
   const sections = { visual: 'Editar no site', profile: 'Perfil e contato', projects: 'Pesquisas', education: 'Formação', publications: 'Publicações', certificates: 'Certificados', languages: 'Idiomas', custom: 'Seções extras', ...(V.FEATURES.assistantUI ? { assistant: 'Assistente e IA' } : {}), preview: 'Antes e depois', history: 'Histórico', opportunities: 'Contatos recebidos', analytics: 'Interesse no perfil' };
   const labels = { skip_link: 'Atalho para o conteúdo', nav_contact: 'Menu: contato', nav_projects: 'Menu: pesquisas', nav_education: 'Menu: formação', contact_email_label: 'Título do email', contact_phone_label: 'Título do telefone', contact_location_label: 'Título da localização', credential_link_label: 'Botão para ver certificado', footer_location: 'Localização no rodapé', nav_label: 'Descrição do menu', language_label: 'Descrição da escolha de idioma', hero_research: 'Botão principal: ver pesquisas', hero_contact: 'Botão principal: entrar em contato', project_full_title_label: 'Título completo da pesquisa', project_link_label: 'Botão para abrir pesquisa', publication_link_label: 'Botão para abrir publicação', eyebrow: 'Apresentação', institution: 'Instituição', graduation: 'Formatura prevista', summary: 'Resumo do perfil', contact_email_value: 'Email', contact_phone_value: 'Telefone', contact_location_value: 'Localização', contact_title: 'Título do contato', contact_lead: 'Convite para contato', projects_title: 'Título de pesquisas', projects_lead: 'Introdução de pesquisas', education_title: 'Título da formação', publications_title: 'Título de publicações', publications_lead: 'Introdução de publicações', certificates_title: 'Título de certificados', certificates_lead: 'Introdução de certificados', languages_title: 'Título dos idiomas', title: 'Título completo', display_title: 'Título curto', subtitle: 'Instituição e função', desc: 'Descrição', venue: 'Publicação / evento', issuer: 'Instituição emissora', tags: 'Temas — um por linha', lead: 'Introdução', name: 'Nome do idioma' };
@@ -204,8 +200,9 @@
     const order = state.content.appearance?.order || ['projects','education',...state.content.collections.custom_sections.map((_,i)=>`custom-${i}`),'contact'];
     $('#section-order').innerHTML = order.map((id,i)=>`<div class="controls"><span>${esc(id.startsWith('custom-') ? V.text(state.content.collections.custom_sections[Number(id.slice(7))]?.title,state.editLang) || 'Nova seção' : ({projects:'Pesquisas',education:'Formação',contact:'Contato'})[id])}</span><button data-section-index="${i}" data-step="-1" ${i===0?'disabled':''} aria-label="Mover para cima">↑</button><button data-section-index="${i}" data-step="1" ${i===order.length-1?'disabled':''} aria-label="Mover para baixo">↓</button></div>`).join('');
     panel.querySelectorAll('[data-edit-section]').forEach(detail=>detail.addEventListener('toggle',()=>{if(detail.open && detail.dataset.editSection!=='text' && state.visualSection!==detail.dataset.editSection)openVisualSection(detail.dataset.editSection);else if(!detail.open && state.visualSection===detail.dataset.editSection)state.visualSection=null;}));
-    appearancePanel.addEventListener('toggle',()=>positionAppearancePreview());
-    updatePreview();setupVisualViewport(); if(state.visualSection)openVisualSection(state.visualSection);restoreLayout();
+    appearancePanel.addEventListener('toggle',()=>{if(appearancePanel.open)updatePreview();});
+    previewDisclosure.addEventListener('toggle',()=>{if(previewDisclosure.open)updatePreview();});
+    setupVisualViewport(); if(state.visualSection)openVisualSection(state.visualSection);restoreLayout();updatePreview();
   }
   function editablePreview(html) {
     const doc = new DOMParser().parseFromString(html,'text/html'), candidates = [];
@@ -256,6 +253,9 @@
   let pendingAppearance=null;
   function updateAppearancePreview(){const frame=$('#preview-frame');if(!frame)return;const html=V.renderPage(state.content,{lang:state.editLang,type:'home',preview:true,contactDemo:true});const doc=new DOMParser().parseFromString(html,'text/html');pendingAppearance={kind:'maria-appearance',css:[...doc.querySelectorAll('style[data-live-appearance]')].map(style=>style.textContent)};frame.contentWindow.postMessage(pendingAppearance,'*');$('#appearance-preview-frame')?.contentWindow.postMessage(pendingAppearance,'*');}
   function updatePreview() {
+    const frame = $('#preview-frame');
+    if (!frame || (state.tab === 'visual' && !$('.preview-disclosure')?.open && !$('.visual-settings')?.open)) return;
+    if (!previewAssets) { loadPreviewAssets().then(() => { if ($('#preview-frame') === frame) updatePreview(); }).catch(error => toast(error.message)); return; }
     const [type, slug] = state.previewType.split(':');
     const content = state.previewSource === 'draft' ? state.content : state.published;
     const inlineScript = source => source.replace(/<\/script/gi, '<\\/script');
@@ -266,7 +266,7 @@
       .replace('<script src="/site.js" defer></script>', () => `<script>${inlineScript(previewAssets.site)}</script>`);
     pendingAppearance=null;$('#preview-frame').onload=()=>{if(state.tab==='visual')$('#preview-frame').contentWindow.postMessage({kind:'maria-edit-mode',enabled:state.directEditing},'*');if(pendingAppearance)$('#preview-frame').contentWindow.postMessage(pendingAppearance,'*');};
     $('#preview-frame').srcdoc = state.tab === 'visual' ? editablePreview(previewHTML) : previewHTML;
-    if(state.tab==='visual' && $('#appearance-preview-frame'))$('#appearance-preview-frame').srcdoc=$('#preview-frame').srcdoc;
+    if(state.tab==='visual'){positionAppearancePreview();if($('#appearance-preview-frame'))$('#appearance-preview-frame').srcdoc=$('#preview-frame').srcdoc;}
     if (state.previewSource === 'draft') state.previewed = signature();
   }
   async function loadHistory() {
@@ -327,7 +327,6 @@
     catch (err) { if ($('#metrics-state')) $('#metrics-state').textContent = err.message; }
   }
   async function start(data) {
-    await loadPreviewAssets();
     state.published = normalize(data.content); state.content = clone(state.published); state.revision = data.revision || ''; state.canPublish = !!data.canPublish && !demo; state.ai = !!data.ai?.configured && !demo;
     try { const saved = JSON.parse(localStorage.getItem(KEY)); if (saved?.content?.pt && saved.content.en && saved.content.es) { state.content = normalize(saved.content); state.photo = /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(saved.photo || '') ? saved.photo : null; state.revision = saved.revision || state.revision; $('#draft-status').textContent = 'Rascunho anterior recuperado'; } } catch { /* A broken local draft must not prevent login. */ }
     $('#login').hidden = true; $('#app').hidden = false; $('#publish').disabled = !state.canPublish;
