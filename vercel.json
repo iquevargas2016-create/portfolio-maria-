@@ -55,6 +55,21 @@
   ],
   "redirects": [
     {
+      "source": "/pt/admin/",
+      "destination": "/admin/",
+      "permanent": false
+    },
+    {
+      "source": "/en/admin/",
+      "destination": "/admin/",
+      "permanent": false
+    },
+    {
+      "source": "/es/admin/",
+      "destination": "/admin/",
+      "permanent": false
+    },
+    {
       "source": "/pt/admin/:path*",
       "destination": "/admin/:path*",
       "permanent": false
