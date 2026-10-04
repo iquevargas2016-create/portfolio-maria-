@@ -205,7 +205,7 @@
     $('#section-order').innerHTML = order.map((id,i)=>`<div class="controls"><span>${esc(id.startsWith('custom-') ? V.text(state.content.collections.custom_sections[Number(id.slice(7))]?.title,state.editLang) || 'Nova seção' : ({projects:'Pesquisas',education:'Formação',contact:'Contato'})[id])}</span><button data-section-index="${i}" data-step="-1" ${i===0?'disabled':''} aria-label="Mover para cima">↑</button><button data-section-index="${i}" data-step="1" ${i===order.length-1?'disabled':''} aria-label="Mover para baixo">↓</button></div>`).join('');
     panel.querySelectorAll('[data-edit-section]').forEach(detail=>detail.addEventListener('toggle',()=>{if(detail.open && detail.dataset.editSection!=='text' && state.visualSection!==detail.dataset.editSection)openVisualSection(detail.dataset.editSection);else if(!detail.open && state.visualSection===detail.dataset.editSection)state.visualSection=null;}));
     appearancePanel.addEventListener('toggle',()=>positionAppearancePreview());
-    updatePreview(); if(state.visualSection)openVisualSection(state.visualSection);restoreLayout();
+    updatePreview();setupVisualViewport(); if(state.visualSection)openVisualSection(state.visualSection);restoreLayout();
   }
   function editablePreview(html) {
     const doc = new DOMParser().parseFromString(html,'text/html'), candidates = [];
@@ -243,9 +243,13 @@
     $('#visual-text').value=valueText(get(path));revealVisualEditor();$('#visual-text').focus({preventScroll:true});
   });
 
+  let visualViewportObserver;
+  function fitVisualViewport(){if(state.tab!=='visual')return;const frame=$('#preview-frame'),wrap=frame?.parentElement;if(!wrap)return;const available=wrap.clientWidth;if(!available)return;const viewport=state.visualMobile?390:1200,scale=Math.min(1,available/viewport),height=Math.min(680,Math.max(320,window.innerHeight*.65));wrap.classList.add('scaled-preview');wrap.style.height=height+'px';frame.style.width=viewport+'px';frame.style.maxWidth='none';frame.style.height=(height/scale)+'px';frame.style.position='absolute';frame.style.left='50%';frame.style.top='0';frame.style.margin='0';frame.style.transformOrigin='top center';frame.style.transform='translateX(-50%) scale('+scale+')';}
+  function setupVisualViewport(){visualViewportObserver?.disconnect();if(window.ResizeObserver){visualViewportObserver=new ResizeObserver(fitVisualViewport);visualViewportObserver.observe($('#preview-frame').parentElement);}fitVisualViewport();}
+  window.addEventListener('resize',fitVisualViewport);
   function positionAppearancePreview(){const settings=$('.visual-settings'),disclosure=$('.preview-disclosure'),area=$('.visual-layout');if(!settings||!disclosure||!area)return;
     if(settings.open){let bench=settings.querySelector('.appearance-workbench');if(!bench){bench=document.createElement('div');bench.className='appearance-workbench';const controls=settings.querySelector('.visual-tools');controls.before(bench);bench.append(controls);const result=document.createElement('div');result.className='appearance-result';bench.append(result);}const result=bench.querySelector('.appearance-result');if(!result.contains(area))result.append($('#visual-device').closest('label'),$('#preview-edit-toggle'),area);disclosure.hidden=true;
-    }else{if(!disclosure.contains(area))disclosure.append($('#visual-device').closest('label'),$('#preview-edit-toggle'),area);disclosure.hidden=false;}
+    }else{if(!disclosure.contains(area))disclosure.append($('#visual-device').closest('label'),$('#preview-edit-toggle'),area);disclosure.hidden=false;}fitVisualViewport();
   }
   function showPreviewSmooth(){if($('.visual-settings').open){$('.appearance-result').scrollIntoView?.({behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'nearest'});return;}const disclosure=$('.preview-disclosure'),reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;const wasOpen=disclosure.open,from=disclosure.getBoundingClientRect().height;disclosure.open=true;
     function navigate(){disclosure.scrollIntoView?.({behavior:reduced?'instant':'smooth',block:'start'});$('#preview-frame').contentWindow.postMessage({kind:'maria-preview-focus',section:state.previewFocus || state.visualSection || 'profile'},'*');state.previewed=signature();}
@@ -351,7 +355,7 @@
     if(t.dataset.palette && ['text','cover','background'].includes(t.dataset.palette)){state.content.appearance ||= {};savePaletteColor(t.dataset.palette,t.value);saveDraft();updateAppearancePreview();return;}
     if(t.id==='visual-font'){state.content.appearance ||= {};state.content.appearance.font=t.value;saveDraft();updateAppearancePreview();return;}
     if(t.id==='visual-theme'){state.content.appearance ||= {};state.content.appearance.theme=t.value;syncPaletteControls();saveDraft();updateAppearancePreview();return;}
-    if(t.id === 'visual-device') { state.visualMobile=t.value==='mobile';$('#preview-frame').classList.toggle('mobile',state.visualMobile);return; }
+    if(t.id === 'visual-device') { state.visualMobile=t.value==='mobile';$('#preview-frame').classList.toggle('mobile',state.visualMobile);fitVisualViewport();return; }
     if(t.id === 'visual-color') { state.content.appearance ||= {}; savePaletteColor('brand',t.value); saveDraft(); updateAppearancePreview(); return; }
     if (t.id === 'edit-language') { state.editLang = t.value; state.previewLang = t.value; window.AdminI18n?.setLanguage(t.value); applyAdminTheme(); render(); return; }
     if (t.id === 'preview-source') { state.previewSource = t.value; updatePreview(); }
