@@ -52,6 +52,7 @@ for(const file of ['styles.css','site.js','shared/view.js','admin/admin.js','adm
   const ext=path.extname(file),name=path.basename(file,ext),target=`/assets/${name}.${hash}${ext}`;
   write(target.slice(1),bytes);assetMap['/'+file]=target;
 }
+assetMap['/photo.jpg']=imageFiles[1][1];
 function optimizeHTML(directory) {
   for(const entry of fs.readdirSync(directory,{withFileTypes:true})) {
     const file=path.join(directory,entry.name);

@@ -275,6 +275,7 @@
     const content = state.previewSource === 'draft' ? state.content : state.published;
     const inlineScript = source => source.replace(/<\/script/gi, '<\\/script');
     let previewHTML = V.renderPage(content, { lang: state.previewLang, type, slug, preview: true, contactDemo: true, photo: (state.previewSource === 'draft' && state.photo) || previewAssets.photo })
+      .replace('src="/photo.jpg"', () => 'src="'+esc(window.PORTFOLIO_ASSETS?.['/photo.jpg'] || '/photo.jpg')+'"')
       .replace('<head>', `<head><base href="${esc(location.origin)}/">`)
       .replace('<link rel="stylesheet" href="/styles.css">', () => `<style>${previewAssets.css}</style>`)
       .replace('<script src="/shared/view.js" defer></script>', () => `<script>${inlineScript(previewAssets.view)}</script>`)
