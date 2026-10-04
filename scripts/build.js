@@ -61,7 +61,7 @@ function optimizeHTML(directory) {
       let html=fs.readFileSync(file,'utf8');
       html=html.replace(/<img src="\/photo.jpg"/g,`<img src="${imageFiles[1][1]}" srcset="${imageFiles.map(([width,url])=>url+' '+width+'w').join(', ')}" sizes="(max-width: 600px) 75vw, 300px"`);
       for(const [source,target] of Object.entries(assetMap))html=html.split(`"${source}"`).join(`"${target}"`);
-      if(path.relative(output,file)==='admin/index.html')html=html.replace('<head>','<head><script>window.PORTFOLIO_ASSETS='+JSON.stringify(assetMap)+'</script>');
+      if(path.relative(output,file)==='admin/index.html')html=html.replace('<head>','<head><script>'+V.RELOAD_POSITION_SCRIPT+'</script><script>window.PORTFOLIO_ASSETS='+JSON.stringify(assetMap)+'</script>');
       fs.writeFileSync(file,html);
     }
   }
