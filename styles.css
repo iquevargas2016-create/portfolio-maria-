@@ -127,7 +127,7 @@ a.contact-card:hover { background: #fff; border-color: var(--brand); }
   .site-nav ul { gap: 1.75rem; }
   .lang-switch { grid-column: 3; }
   .hero { padding-block: 4.25rem 4.75rem; }
-  .hero-inner { grid-template-columns: minmax(0,1fr) 18.5rem; gap: 4.5rem; }
+  .hero-inner { grid-template-columns: minmax(0,1fr) 14.5rem; gap: 3.5rem; }
   .summary { font-size: 1.1rem; }
   .education-layout { grid-template-columns: minmax(0,1fr) 18rem; gap: 4rem; }
   .contact-grid { grid-template-columns: 1.35fr 1fr 1fr; }
