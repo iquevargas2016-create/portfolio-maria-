@@ -158,3 +158,16 @@ test('admin becomes usable without fetching or rendering a closed preview', asyn
   assert.ok(!requests.includes('/photo.jpg'));
   dom.window.close();
 });
+
+test('typing updates preview text without reloading the iframe', async () => {
+ const {dom,d,w}=await admin();
+ const frame=d.querySelector('#preview-frame'),before=frame.srcdoc,messages=[];
+ frame.contentWindow.postMessage=message=>messages.push(message);
+ w.dispatchEvent(new w.MessageEvent('message',{source:frame.contentWindow,data:{kind:'maria-edit-section',section:'profile'}}));
+ const field=[...d.querySelectorAll('[data-path]')].find(node=>node.dataset.path==='["pt","summary"]');
+ for(const value of ['Primeiro texto','Texto final']){field.value=value;field.dispatchEvent(new w.Event('input',{bubbles:true}));}
+ assert.equal(frame.srcdoc,before);
+ assert.equal(messages.at(-1).kind,'maria-text');assert.equal(messages.at(-1).value,'Texto final');
+ assert.equal(JSON.parse(w.localStorage.getItem('maria-draft-v2-demo')).content.pt.summary,'Texto final');
+ dom.window.close();
+});
