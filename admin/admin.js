@@ -16,7 +16,7 @@
   function loadPreviewAssets() {
     if (previewAssets) return Promise.resolve();
     if (!previewAssetsPromise) previewAssetsPromise = Promise.all(['/styles.css', '/shared/view.js', '/site.js'].map(async path => {
-      const response = await fetch(path);
+      const response = await fetch(window.PORTFOLIO_ASSETS?.[path] || path);
       if (!response.ok) throw new Error('Não foi possível carregar os arquivos da prévia. Tente abrir a prévia novamente.');
       return response.text();
     })).then(([css, view, site]) => { previewAssets = { css, view, site, photo: '/photo.jpg' }; }).catch(error => { previewAssetsPromise = null; throw error; });
@@ -251,6 +251,8 @@
     if(!wasOpen && !reduced && disclosure.animate){const height=disclosure.getBoundingClientRect().height;disclosure.style.overflow='hidden';const animation=disclosure.animate([{height:from+'px',opacity:.75},{height:height+'px',opacity:1}],{duration:300,easing:'cubic-bezier(.22,1,.36,1)'});animation.finished.then(()=>{disclosure.style.overflow='';navigate();}).catch(()=>{disclosure.style.overflow='';});}else navigate();
   }
   let pendingAppearance=null;
+  let appearanceFrame;
+  function scheduleAppearancePreview(){if(appearanceFrame)return;appearanceFrame=(window.requestAnimationFrame || (callback=>setTimeout(callback,16)))(()=>{appearanceFrame=null;updateAppearancePreview();});}
   function updateAppearancePreview(){const frame=$('#preview-frame');if(!frame)return;const html=V.renderPage(state.content,{lang:state.editLang,type:'home',preview:true,contactDemo:true});const doc=new DOMParser().parseFromString(html,'text/html');pendingAppearance={kind:'maria-appearance',css:[...doc.querySelectorAll('style[data-live-appearance]')].map(style=>style.textContent)};frame.contentWindow.postMessage(pendingAppearance,'*');$('#appearance-preview-frame')?.contentWindow.postMessage(pendingAppearance,'*');}
   let textPreviewTimer;
   function updateTextPreview(path) {
@@ -273,6 +275,7 @@
     const content = state.previewSource === 'draft' ? state.content : state.published;
     const inlineScript = source => source.replace(/<\/script/gi, '<\\/script');
     let previewHTML = V.renderPage(content, { lang: state.previewLang, type, slug, preview: true, contactDemo: true, photo: (state.previewSource === 'draft' && state.photo) || previewAssets.photo })
+      .replace('src="/photo.jpg"', () => 'src="'+esc(window.PORTFOLIO_ASSETS?.['/photo.jpg'] || '/photo.jpg')+'"')
       .replace('<head>', `<head><base href="${esc(location.origin)}/">`)
       .replace('<link rel="stylesheet" href="/styles.css">', () => `<style>${previewAssets.css}</style>`)
       .replace('<script src="/shared/view.js" defer></script>', () => `<script>${inlineScript(previewAssets.view)}</script>`)
@@ -350,14 +353,14 @@
   }
   $('#login-form').addEventListener('submit', async event => {
     event.preventDefault(); const button = event.submitter; button.disabled = true; $('#login-error').textContent = '';
-    try { const data = await api('/api/login', { method: 'POST', body: JSON.stringify({ password: new FormData(event.target).get('password') }) }); state.token = data.token; event.target.reset(); await start(await api('/api/content')); }
+    try { const data = await api('/api/login', { method: 'POST', body: JSON.stringify({ password: new FormData(event.target).get('password'), includeContent: true }) }); state.token = data.token; event.target.reset(); await start(data.content ? data : await api('/api/content')); }
     catch (err) { $('#login-error').textContent = err.message; } finally { button.disabled = false; }
   });
   $('#logout').addEventListener('click', () => { state.token = ''; location.href = '/admin/'; });
   $('#navigation').addEventListener('click', event => { const button = event.target.closest('[data-tab]'); if (!button) return; state.tab = button.dataset.tab; render(); $('#workspace').focus(); });
   $('#open-preview').addEventListener('click', () => { state.tab = 'preview'; state.previewSource = 'draft'; render(); });
   $('#panel').addEventListener('input', event => {
-    const target = event.target; if(target.type==='color' && (target.id==='visual-color' || target.dataset.palette)){state.content.appearance ||= {};savePaletteColor(target.dataset.palette || 'brand',target.value);saveDraft();updateAppearancePreview();return;} if(target.id==='visual-text' && visualSelection){set(visualSelection,target.value);markTranslation(visualSelection);saveDraft();updateTextPreview(visualSelection);return;} if (!target.dataset.path) return;
+    const target = event.target; if(target.type==='color' && (target.id==='visual-color' || target.dataset.palette)){state.content.appearance ||= {};savePaletteColor(target.dataset.palette || 'brand',target.value);saveDraft();scheduleAppearancePreview();return;} if(target.id==='visual-text' && visualSelection){set(visualSelection,target.value);markTranslation(visualSelection);saveDraft();updateTextPreview(visualSelection);return;} if (!target.dataset.path) return;
     const path = JSON.parse(target.dataset.path); set(path, target.dataset.tags ? target.value.split('\n').map(s => s.trim()).filter(Boolean) : target.value); if (target.dataset.translate) markTranslation(path); saveDraft();
     if(state.tab==='visual') updateTextPreview(path);
     target.closest('.translations')?.querySelectorAll('.badge').forEach(b => { b.textContent = 'A revisar'; b.classList.remove('reviewed'); });

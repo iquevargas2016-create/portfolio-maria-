@@ -3,6 +3,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const V = require('../shared/view');
 const { validate } = require('../lib/content');
+async function build() {
 const root = path.resolve(__dirname, '..'), output = path.join(root, 'public');
 const content = validate(JSON.parse(fs.readFileSync(path.join(root, 'content.json'), 'utf8')));
 const preview = process.env.VERCEL_ENV === 'preview';
@@ -38,7 +39,40 @@ write('offline.html', '<!doctype html><html lang="pt"><meta charset="utf-8"><met
 write('404.html', '<!doctype html><html lang="pt"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Página não encontrada</title><link rel="stylesheet" href="/styles.css"><main class="container section"><h1>Página não encontrada / Page not found</h1><a href="/">Maria Eduarda Miranda →</a></main></html>');
 write('robots.txt', `User-agent: *\n${preview ? 'Disallow: /' : `Disallow: /admin/\nDisallow: /api/\nSitemap: ${V.ORIGIN}/sitemap.xml`}\n`);
 write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${routes.map(p => `<url><loc>${V.ORIGIN + p}</loc></url>`).join('')}</urlset>`);
-const precache = ['/', '/offline.html', '/styles.css', '/site.js', '/shared/view.js', '/photo.jpg', ...routes, ...V.LANGS.map(l => `/${l}/contact.vcf`)];
-const version = crypto.createHash('sha256').update(precache.map(p => fs.readFileSync(path.join(output, p.endsWith('/') ? p + 'index.html' : p))).join('')).digest('hex').slice(0, 12);
-write('sw.js', `const CACHE='maria-${version}';\nconst FILES=${JSON.stringify(precache)};\nself.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES))));\nself.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('maria-')&&key!==CACHE).map(key=>caches.delete(key))))));\nself.addEventListener('fetch',event=>{const url=new URL(event.request.url);if(event.request.method!=='GET'||url.origin!==self.location.origin||url.search||!FILES.includes(url.pathname))return;event.respondWith(fetch(event.request).then(response=>{if(response.ok){const copy=response.clone();event.waitUntil(caches.open(CACHE).then(cache=>cache.put(event.request,copy)));}return response;}).catch(()=>caches.match(event.request).then(cached=>cached||(event.request.mode==='navigate'?caches.match('/offline.html'):Response.error()))));});\n`);
+// Derived files are rebuilt from the current uploaded photo on every deployment.
+const imageFiles=[];
+for(const width of [320,640,960]) {
+  const bytes=await require('sharp')(path.join(root,'photo.jpg')).rotate().resize({width,withoutEnlargement:true}).webp({quality:80}).toBuffer();
+  const hash=crypto.createHash('sha256').update(bytes).digest('hex').slice(0,12);
+  const file=`/assets/photo-${width}.${hash}.webp`;write(file.slice(1),bytes);imageFiles.push([width,file]);
+}
+const assetMap={};
+for(const file of ['styles.css','site.js','shared/view.js','admin/admin.js','admin/i18n.js','admin/admin.css']) {
+  const bytes=fs.readFileSync(path.join(output,file)),hash=crypto.createHash('sha256').update(bytes).digest('hex').slice(0,12);
+  const ext=path.extname(file),name=path.basename(file,ext),target=`/assets/${name}.${hash}${ext}`;
+  write(target.slice(1),bytes);assetMap['/'+file]=target;
+}
+assetMap['/photo.jpg']=imageFiles[1][1];
+function optimizeHTML(directory) {
+  for(const entry of fs.readdirSync(directory,{withFileTypes:true})) {
+    const file=path.join(directory,entry.name);
+    if(entry.isDirectory())optimizeHTML(file);
+    else if(entry.name.endsWith('.html')) {
+      let html=fs.readFileSync(file,'utf8');
+      html=html.replace(/<img src="\/photo.jpg"/g,`<img src="${imageFiles[1][1]}" srcset="${imageFiles.map(([width,url])=>url+' '+width+'w').join(', ')}" sizes="(max-width: 600px) 75vw, 300px"`);
+      for(const [source,target] of Object.entries(assetMap))html=html.split(`"${source}"`).join(`"${target}"`);
+      if(path.relative(output,file)==='admin/index.html')html=html.replace('<head>','<head><script>window.PORTFOLIO_ASSETS='+JSON.stringify(assetMap)+'</script>');
+      fs.writeFileSync(file,html);
+    }
+  }
+}
+optimizeHTML(output);
+// Install only the offline shell, instead of downloading all pages at once.
+const precache=['/offline.html',assetMap['/styles.css']];
+const allowedAssets=Object.values(assetMap).filter(url=>!url.includes('/admin.')&&!url.includes('/i18n.'));
+const allowed=['/',...precache,...routes,...allowedAssets,...imageFiles.map(([,url])=>url),'/photo.jpg',...V.LANGS.map(lang=>`/${lang}/contact.vcf`)];
+const version = crypto.createHash('sha256').update(JSON.stringify([assetMap,imageFiles,content])).digest('hex').slice(0,12);
+write('sw.js', `const CACHE='maria-${version}';\nconst FILES=${JSON.stringify(allowed)};\nconst PRECACHE=${JSON.stringify(precache)};\nself.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(PRECACHE))));\nself.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('maria-')&&key!==CACHE).map(key=>caches.delete(key))))));\nself.addEventListener('fetch',event=>{const url=new URL(event.request.url);if(event.request.method!=='GET'||url.origin!==self.location.origin||url.search||!FILES.includes(url.pathname))return;const network=()=>fetch(event.request).then(response=>{if(response.ok){const copy=response.clone();event.waitUntil(caches.open(CACHE).then(cache=>cache.put(event.request,copy)));}return response;});event.respondWith((url.pathname.startsWith('/assets/')?caches.match(event.request).then(cached=>cached||network()):network()).catch(()=>caches.match(event.request).then(cached=>cached||(event.request.mode==='navigate'?caches.match('/offline.html'):Response.error()))));});\n`);
 console.log(`Built ${routes.length + 1} public pages in 3 languages${preview ? ' (preview)' : ''}.`);
+}
+build().catch(error=>{console.error(error);process.exitCode=1;});
