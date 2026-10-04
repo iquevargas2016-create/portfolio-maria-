@@ -3,6 +3,16 @@
   const { UI, NAME } = window.Portfolio;
   const lang = document.body.dataset.lang || 'en', u = UI[lang];
   const preview = document.body.dataset.preview === 'true';
+  if (document.body.dataset.contactDemo !== 'true') {
+    const button=document.querySelector('[data-theme-toggle]'), media=window.matchMedia?.('(prefers-color-scheme: dark)');
+    const names={pt:{auto:'Automático',dark:'Noturno',light:'Claro',help:'Tema: '},en:{auto:'Automatic',dark:'Dark',light:'Light',help:'Theme: '},es:{auto:'Automático',dark:'Nocturno',light:'Claro',help:'Tema: '}}[lang];
+    let preference='auto';try{const stored=localStorage.getItem('maria-theme');if(['light','dark'].includes(stored))preference=stored;}catch{}
+    function applyTheme(){document.documentElement.dataset.theme=preference==='auto'?(media?.matches?'dark':'light'):preference;if(button){button.textContent='◐ '+names[preference];button.setAttribute('aria-label',names.help+names[preference]);button.title=names.help+names[preference];}}
+    button?.addEventListener('click',()=>{preference={auto:'dark',dark:'light',light:'auto'}[preference];try{if(preference==='auto')localStorage.removeItem('maria-theme');else localStorage.setItem('maria-theme',preference);}catch{}applyTheme();});
+    media?.addEventListener?.('change',applyTheme);
+    window.addEventListener('storage',event=>{if(event.key==='maria-theme'){preference=['light','dark'].includes(event.newValue)?event.newValue:'auto';applyTheme();}});
+    applyTheme();
+  }
   const status = document.getElementById('site-status');
   let statusTimer;
   function announce(message, persistent = false) {
@@ -136,6 +146,16 @@
     document.getElementById('research-empty').hidden = count > 0;
   }
   search?.addEventListener('input', filter); theme?.addEventListener('change', filter);
+  if(theme && document.body.dataset.preview==='true'){
+    const wrapper=document.createElement('div');wrapper.className='preview-theme-picker';const trigger=document.createElement('button');trigger.type='button';trigger.className='preview-theme-trigger';trigger.textContent=theme.selectedOptions[0].textContent;trigger.setAttribute('aria-label',u.theme);trigger.setAttribute('aria-expanded','false');trigger.setAttribute('aria-haspopup','listbox');
+    const list=document.createElement('div');list.className='preview-theme-options';list.role='listbox';list.setAttribute('aria-label',u.theme);list.hidden=true;
+    function close(){list.hidden=true;trigger.setAttribute('aria-expanded','false');}
+    [...theme.options].forEach(option=>{const choice=document.createElement('button');choice.type='button';choice.role='option';choice.textContent=option.textContent;choice.setAttribute('aria-selected',String(option.selected));choice.addEventListener('click',()=>{theme.value=option.value;trigger.textContent=option.textContent;list.querySelectorAll('button').forEach(button=>button.setAttribute('aria-selected',String(button===choice)));theme.dispatchEvent(new Event('change',{bubbles:true}));close();trigger.focus();});list.append(choice);});
+    trigger.addEventListener('click',()=>{list.hidden=!list.hidden;trigger.setAttribute('aria-expanded',String(!list.hidden));if(!list.hidden)list.querySelector('[aria-selected="true"]').focus();});
+    wrapper.addEventListener('keydown',event=>{if(event.key==='Escape'){close();trigger.focus();}else if(event.key==='ArrowDown'||event.key==='ArrowUp'){event.preventDefault();if(list.hidden){list.hidden=false;trigger.setAttribute('aria-expanded','true');}const buttons=[...list.querySelectorAll('button')],index=buttons.indexOf(document.activeElement);buttons[(index+(event.key==='ArrowDown'?1:-1)+buttons.length)%buttons.length].focus();}});
+    document.addEventListener('click',event=>{if(!wrapper.contains(event.target))close();});
+    theme.after(wrapper);wrapper.append(trigger,list);theme.hidden=true;theme.tabIndex=-1;
+  }
   const focus = document.getElementById('cv-focus');
   if (focus) {
     const main = document.getElementById('main'), projects = document.getElementById('projects'), education = document.getElementById('education');
