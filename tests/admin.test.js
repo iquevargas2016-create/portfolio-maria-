@@ -143,7 +143,7 @@ test('restoring colors preserves panel elements, open disclosures and selected m
 test('color changes update styles in place without reloading preview or photo',async()=>{
  const {dom,d,w}=await admin();const frame=d.querySelector('#preview-frame'),original=frame.srcdoc,messages=[];frame.contentWindow.postMessage=message=>messages.push(message);
  const color=d.querySelector('[data-palette="background"]');color.value='#ccbbaa';color.dispatchEvent(new w.Event('input',{bubbles:true}));
- assert.equal(frame.srcdoc,original);assert.equal(messages.at(-1).kind,'maria-appearance');assert.ok(messages.at(-1).css.some(css=>css.includes('#ccbbaa')));dom.window.close();
+ await settle();assert.equal(frame.srcdoc,original);assert.equal(messages.at(-1).kind,'maria-appearance');assert.ok(messages.at(-1).css.some(css=>css.includes('#ccbbaa')));dom.window.close();
 });
 
 test('admin becomes usable without fetching or rendering a closed preview', async () => {
@@ -170,4 +170,14 @@ test('typing updates preview text without reloading the iframe', async () => {
  assert.equal(messages.at(-1).kind,'maria-text');assert.equal(messages.at(-1).value,'Texto final');
  assert.equal(JSON.parse(w.localStorage.getItem('maria-draft-v2-demo')).content.pt.summary,'Texto final');
  dom.window.close();
+});
+
+test('rapid palette input is grouped into one preview update',async()=>{
+ const {dom,d,w}=await admin(),messages=[];
+ d.querySelector('#preview-frame').contentWindow.postMessage=message=>messages.push(message);
+ const color=d.querySelector('#visual-color');
+ for(const value of ['#112233','#223344','#334455']){color.value=value;color.dispatchEvent(new w.Event('input',{bubbles:true}));}
+ await settle();
+ assert.equal(messages.filter(message=>message.kind==='maria-appearance').length,1);
+ assert.ok(messages[0].css.some(css=>css.includes('#334455')));dom.window.close();
 });

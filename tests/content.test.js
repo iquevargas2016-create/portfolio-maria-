@@ -63,6 +63,10 @@ test('build generates all route targets, folded vCards, and an allowlisted offli
   const sw = fs.readFileSync(path.join(out, 'sw.js'), 'utf8');
   assert.match(sw, /!FILES.includes\(url.pathname\)/);
   assert.ok(!sw.includes('/admin/') && !sw.includes('/api/'));
+  const home=new JSDOM(fs.readFileSync(path.join(out,'pt/index.html'),'utf8')).window.document;
+  const photo=home.querySelector('.photo-frame img');assert.match(photo.src,/photo-640.*webp/);assert.ok(photo.srcset.includes('320w')&&photo.srcset.includes('960w'));
+  assert.ok(home.querySelector('script[src^="/assets/"]'));assert.match(sw,/cache.addAll\(PRECACHE\)/);
+  const shell=JSON.parse(sw.match(/const PRECACHE=(.*);/)[1]);assert.equal(shell.length,2);
   assert.ok(!fs.existsSync(path.join(out, 'lib')));
   assert.equal(JSON.parse(fs.readFileSync(path.join(out, 'content.json'))).editorial, undefined);
 });

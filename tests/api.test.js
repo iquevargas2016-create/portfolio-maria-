@@ -58,3 +58,10 @@ test('analytics never invents zero counts when storage is absent and requires lo
   const result = res(); await require('../api/analytics')(req('GET'), result); assert.deepEqual(result.body, { configured: false });
   const unauth = req('GET'); unauth.headers.authorization = ''; const denied = res(); await require('../api/analytics')(unauth, denied); assert.equal(denied.code, 401);
 });
+
+test('login can return authenticated content in the same response and rejects wrong passwords before repository access',async()=>{
+ process.env.ADMIN_PASSWORD='test-password';process.env.GITHUB_REPO='login-speed-test';
+ let calls=0;global.fetch=async url=>{calls++;return response(url.includes('/git/ref/')?{object:{sha:'d'.repeat(40)}}:{content:Buffer.from(JSON.stringify(content)).toString('base64')});};
+ const bad=res();await require('../api/login')(req('POST',{password:'wrong',includeContent:true}),bad);assert.equal(bad.code,401);assert.equal(calls,0);
+ const result=res();await require('../api/login')(req('POST',{password:'test-password',includeContent:true}),result);assert.equal(result.code,200);assert.ok(verifyToken(result.body.token));assert.equal(result.body.content.pt.summary,content.pt.summary);assert.equal(result.body.canPublish,true);assert.equal(calls,2);assert.equal(result.headers['Cache-Control'],'no-store');
+});
